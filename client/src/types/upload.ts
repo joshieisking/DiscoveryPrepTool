@@ -14,12 +14,16 @@ export interface UploadProgress {
   isUploading: boolean;
 }
 
+export interface HRInsight {
+  dataPoint: string;
+  hrRelevance: string;
+  conversationStarter: string;
+}
+
 export interface AnalysisData {
   summary: string;
-  keyInsights: string[];
-  financialMetrics: {
-    revenue: string;
-    profitMargin: string;
-    growthRate: string;
-  };
+  businessContext: HRInsight[];
+  workforceInsights: HRInsight[];
+  operationalChallenges: HRInsight[];
+  strategicPeopleInitiatives: HRInsight[];
 }

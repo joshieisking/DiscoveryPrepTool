@@ -1,6 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, DollarSign, Target } from "lucide-react";
+import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +8,7 @@ import Header from "@/components/header";
 import { getUploadById } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
-import type { AnalysisData } from "@/types/upload";
+import type { AnalysisData, HRInsight } from "@/types/upload";
 
 export default function Analysis() {
   const { id } = useParams();
@@ -134,82 +134,37 @@ export default function Analysis() {
             </CardContent>
           </Card>
 
-          {/* Financial Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <DollarSign className="w-5 h-5 mr-2 text-primary" />
-                Key Financial Metrics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-600 mb-1">Revenue</p>
-                  <p className="text-2xl font-bold text-slate-900">{analysisData.financialMetrics.revenue}</p>
-                </div>
-                <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-600 mb-1">Profit Margin</p>
-                  <p className="text-2xl font-bold text-slate-900">{analysisData.financialMetrics.profitMargin}</p>
-                </div>
-                <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-600 mb-1">Growth Rate</p>
-                  <p className="text-2xl font-bold text-slate-900">{analysisData.financialMetrics.growthRate}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Business Context */}
+          <InsightSection 
+            title="Business Context" 
+            icon={<Building className="w-5 h-5 mr-2 text-primary" />}
+            insights={analysisData.businessContext}
+            description="Revenue, expansion, and strategic priorities"
+          />
 
-          {/* Key Insights */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-                Key Insights & Discovery Questions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analysisData.keyInsights.map((insight, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-xs font-medium text-primary">{index + 1}</span>
-                    </div>
-                    <p className="text-slate-700">{insight}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Workforce Insights */}
+          <InsightSection 
+            title="Workforce Insights" 
+            icon={<Users className="w-5 h-5 mr-2 text-primary" />}
+            insights={analysisData.workforceInsights}
+            description="Employee data, hiring challenges, and talent initiatives"
+          />
 
-          {/* Discovery Questions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Suggested Discovery Questions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-900 font-medium">
-                    "I noticed your company achieved {analysisData.financialMetrics.growthRate} growth last year. 
-                    What were the key drivers behind this success?"
-                  </p>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-900 font-medium">
-                    "With a {analysisData.financialMetrics.profitMargin} profit margin, 
-                    what are your biggest challenges in maintaining profitability?"
-                  </p>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-900 font-medium">
-                    "Looking at your digital transformation initiatives, 
-                    what technology gaps are you most concerned about?"
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Operational Challenges */}
+          <InsightSection 
+            title="Operational Challenges" 
+            icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
+            insights={analysisData.operationalChallenges}
+            description="Compliance, technology, and efficiency initiatives"
+          />
+
+          {/* Strategic People Initiatives */}
+          <InsightSection 
+            title="Strategic People Initiatives" 
+            icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
+            insights={analysisData.strategicPeopleInitiatives}
+            description="ESG, remote work, learning, and culture initiatives"
+          />
         </div>
       </main>
     </div>

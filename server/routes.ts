@@ -73,30 +73,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUploadSchema.parse(uploadData);
       const newUpload = await storage.createUpload(validatedData);
 
-      // Simulate processing - in a real app, this would be async
+      // Process document with GEMINI
       setTimeout(async () => {
         try {
           console.log(`Processing upload ${newUpload.id}...`);
           
-          // Mock analysis data
-          const mockAnalysis = {
-            summary: "Annual report analysis completed",
-            keyInsights: [
-              "Revenue grew 15% year-over-year",
-              "Strong performance in digital transformation initiatives",
-              "Expansion into new markets showing promising results"
-            ],
-            financialMetrics: {
-              revenue: "$2.5B",
-              profitMargin: "12%",
-              growthRate: "15%"
-            }
-          };
+          const { analyzeDocumentWithGemini } = await import('./services/gemini');
+          const analysisResult = await analyzeDocumentWithGemini(req.file!.path);
 
           const updatedUpload = await storage.updateUploadStatus(
             newUpload.id, 
             "completed", 
-            JSON.stringify(mockAnalysis)
+            JSON.stringify(analysisResult)
           );
           
           console.log(`Upload ${newUpload.id} analysis completed:`, updatedUpload);
@@ -104,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error processing upload ${newUpload.id}:`, error);
           await storage.updateUploadStatus(newUpload.id, "failed");
         }
-      }, 3000);
+      }, 2000);
 
       res.status(201).json(newUpload);
     } catch (error) {
