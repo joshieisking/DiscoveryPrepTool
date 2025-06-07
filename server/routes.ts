@@ -76,6 +76,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Simulate processing - in a real app, this would be async
       setTimeout(async () => {
         try {
+          console.log(`Processing upload ${newUpload.id}...`);
+          
           // Mock analysis data
           const mockAnalysis = {
             summary: "Annual report analysis completed",
@@ -91,12 +93,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
 
-          await storage.updateUploadStatus(
+          const updatedUpload = await storage.updateUploadStatus(
             newUpload.id, 
             "completed", 
             JSON.stringify(mockAnalysis)
           );
+          
+          console.log(`Upload ${newUpload.id} analysis completed:`, updatedUpload);
         } catch (error) {
+          console.error(`Error processing upload ${newUpload.id}:`, error);
           await storage.updateUploadStatus(newUpload.id, "failed");
         }
       }, 3000);

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { FileText, CheckCircle, Loader2, AlertTriangle, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,12 @@ export default function UploadHistory() {
   const { data: uploads = [], isLoading } = useQuery({
     queryKey: ['/api/uploads'],
     queryFn: getUploads,
+    refetchInterval: (data) => {
+      // Only poll if there are processing uploads
+      if (!data || !Array.isArray(data)) return false;
+      const hasProcessing = data.some((upload: UploadFile) => upload.status === 'processing');
+      return hasProcessing ? 2000 : false; // Poll every 2 seconds if processing
+    },
   });
 
   const deleteMutation = useMutation({

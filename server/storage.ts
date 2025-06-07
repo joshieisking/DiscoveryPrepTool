@@ -46,9 +46,13 @@ export class MemStorage implements IStorage {
   async createUpload(insertUpload: InsertUpload): Promise<Upload> {
     const id = this.currentUploadId++;
     const upload: Upload = {
-      ...insertUpload,
       id,
+      fileName: insertUpload.fileName,
+      fileSize: insertUpload.fileSize,
+      status: insertUpload.status || "processing",
       uploadTime: new Date(),
+      filePath: insertUpload.filePath ?? null,
+      analysisData: insertUpload.analysisData ?? null,
     };
     this.uploads.set(id, upload);
     return upload;
