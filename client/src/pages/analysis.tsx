@@ -10,6 +10,66 @@ import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
 import type { AnalysisData, HRInsight } from "@/types/upload";
 
+interface InsightSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  insights: HRInsight[];
+  description: string;
+}
+
+function InsightSection({ title, icon, insights, description }: InsightSectionProps) {
+  if (!insights || insights.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            {icon}
+            {title}
+          </CardTitle>
+          <p className="text-sm text-slate-600">{description}</p>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-500 italic">No specific insights found in this category.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          {icon}
+          {title}
+        </CardTitle>
+        <p className="text-sm text-slate-600">{description}</p>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {insights.map((insight, index) => (
+            <div key={index} className="border-l-4 border-primary/20 pl-4">
+              <div className="space-y-3">
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <p className="text-sm text-slate-600 font-medium mb-1">Data Point:</p>
+                  <p className="text-slate-800">{insight.dataPoint}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium mb-1">HR Relevance:</p>
+                  <p className="text-blue-800">{insight.hrRelevance}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-600 font-medium mb-1">Conversation Starter:</p>
+                  <p className="text-green-900 font-medium">"{insight.conversationStarter}"</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Analysis() {
   const { id } = useParams();
   
