@@ -42,13 +42,20 @@ export default function UploadHistory() {
   const { data: uploads = [], isLoading } = useQuery({
     queryKey: ['/api/uploads'],
     queryFn: getUploads,
-    refetchInterval: (data) => {
-      // Only poll if there are processing uploads
-      if (!data || !Array.isArray(data)) return false;
-      const hasProcessing = data.some((upload: UploadFile) => upload.status === 'processing');
-      return hasProcessing ? 2000 : false; // Poll every 2 seconds if processing
-    },
   });
+
+  // Set up polling for processing uploads
+  useEffect(() => {
+    const hasProcessing = uploads.some(upload => upload.status === 'processing');
+    
+    if (hasProcessing) {
+      const interval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/uploads'] });
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [uploads, queryClient]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteUpload,
