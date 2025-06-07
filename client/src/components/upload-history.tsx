@@ -46,7 +46,7 @@ export default function UploadHistory() {
 
   // Set up polling for processing uploads
   useEffect(() => {
-    const hasProcessing = uploads.some(upload => upload.status === 'processing');
+    const hasProcessing = Array.isArray(uploads) && uploads.some(upload => upload.status === 'processing');
     
     if (hasProcessing) {
       const interval = setInterval(() => {
