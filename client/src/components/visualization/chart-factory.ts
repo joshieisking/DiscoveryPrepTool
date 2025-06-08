@@ -35,51 +35,247 @@ export interface ChartTemplate {
 }
 
 // Data extraction utilities
+// Currency support for international annual reports
+interface CurrencyInfo {
+  symbol: string;
+  code: string;
+  name: string;
+}
+
+const SUPPORTED_CURRENCIES: Record<string, CurrencyInfo> = {
+  'S$': { symbol: 'S$', code: 'SGD', name: 'Singapore Dollar' },
+  '$': { symbol: '$', code: 'USD', name: 'US Dollar' },
+  'USD': { symbol: '$', code: 'USD', name: 'US Dollar' },
+  '€': { symbol: '€', code: 'EUR', name: 'Euro' },
+  'EUR': { symbol: '€', code: 'EUR', name: 'Euro' },
+  '£': { symbol: '£', code: 'GBP', name: 'British Pound' },
+  'GBP': { symbol: '£', code: 'GBP', name: 'British Pound' },
+  '¥': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
+  'JPY': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' }
+};
+
 // Financial keywords for consistent extraction
 const financialKeywords = {
-  revenue: ["total revenue", "net sales", "operating revenue", "turnover"],
-  profit: ["net income", "net profit", "profit after tax", "net earnings"],
-  employees: ["total employees", "workforce", "headcount", "number of employees"],
+  revenue: ["total revenue", "net sales", "operating revenue", "turnover", "total income"],
+  profit: ["net profit", "net income", "profit after tax", "net earnings"],
+  profitSecondary: ["underlying net profit", "adjusted net profit", "core net profit", "normalised net profit"],
+  employees: ["total employees", "workforce", "headcount", "number of employees", "staff count"],
   assets: ["total assets", "total resources"]
 };
 
-// When standard terms aren't found, look for these patterns
+// Enhanced patterns with multi-currency support
 const fallbackPatterns = {
-  revenue: /revenue.*?(\$?[\d,]+\.?\d*\s?(million|billion|thousand))/i,
+  revenue: /(revenue|sales|income).*?([S$€£¥]?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
+  profit: /(profit|income|earnings).*?([S$€£¥]?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
   employees: /employ.*?(\d{1,3}(?:,\d{3})*)/i,
   countries: /(?:countries|markets|territories).*?(\d+)/i
 };
 
+interface FinancialMatch {
+  value: number;
+  currency: CurrencyInfo;
+  context: string;
+  year?: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 class FinancialDataExtractor {
   static extractRevenue(analysisData: AnalysisData): number | null {
+    try {
+      const enhanced = this.extractRevenueWithContext(analysisData);
+      if (enhanced && enhanced.confidence !== 'low') {
+        return enhanced.value;
+      }
+    } catch (error) {
+      console.warn('Enhanced revenue extraction failed, using fallback');
+    }
+    
+    // Fallback to original logic
+    return this.extractRevenueFallback(analysisData);
+  }
+
+  static extractProfit(analysisData: AnalysisData): number | null {
+    try {
+      const enhanced = this.extractProfitWithContext(analysisData);
+      if (enhanced && enhanced.confidence !== 'low') {
+        return enhanced.value;
+      }
+    } catch (error) {
+      console.warn('Enhanced profit extraction failed, using fallback');
+    }
+    
+    // Fallback to original logic
+    return this.extractProfitFallback(analysisData);
+  }
+
+  private static extractRevenueWithContext(analysisData: AnalysisData): FinancialMatch | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    const matches = this.findAllFinancialMatches(allText, 'revenue');
+    
+    if (matches.length === 0) return null;
+    
+    // Select the best match based on year and context
+    return this.selectBestMatch(matches);
+  }
+
+  private static extractProfitWithContext(analysisData: AnalysisData): FinancialMatch | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    
+    // First try primary profit keywords
+    let matches = this.findAllFinancialMatches(allText, 'profit');
+    
+    // If no primary matches, try secondary profit terms but mark as lower confidence
+    if (matches.length === 0) {
+      matches = this.findAllFinancialMatches(allText, 'profitSecondary');
+      matches.forEach(match => match.confidence = 'medium');
+    }
+    
+    if (matches.length === 0) return null;
+    
+    // Prioritize "net profit" over "underlying profit"
+    const netProfitMatches = matches.filter(m => 
+      m.context.toLowerCase().includes('net profit') && 
+      !m.context.toLowerCase().includes('underlying')
+    );
+    
+    const bestMatches = netProfitMatches.length > 0 ? netProfitMatches : matches;
+    return this.selectBestMatch(bestMatches);
+  }
+
+  private static findAllFinancialMatches(text: string, type: keyof typeof financialKeywords): FinancialMatch[] {
+    const matches: FinancialMatch[] = [];
+    const keywords = financialKeywords[type];
+    
+    keywords.forEach(keyword => {
+      const regex = new RegExp(`(${keyword.replace(/\s+/g, '\\s+')})([^.]*?)([S$€£¥]?[\\d,]+\\.?\\d*\\s?(?:million|billion|thousand|m|b))`, 'gi');
+      let match;
+      
+      while ((match = regex.exec(text)) !== null) {
+        const context = match[0];
+        const valueStr = match[3];
+        const currency = this.detectCurrency(valueStr, context);
+        const value = this.parseFinancialValueEnhanced(valueStr);
+        const year = this.extractYear(context);
+        
+        if (value && currency) {
+          matches.push({
+            value,
+            currency,
+            context,
+            year,
+            confidence: this.calculateConfidence(context, keyword, year)
+          });
+        }
+      }
+    });
+    
+    return matches;
+  }
+
+  private static selectBestMatch(matches: FinancialMatch[]): FinancialMatch | null {
+    if (matches.length === 0) return null;
+    if (matches.length === 1) return matches[0];
+    
+    // Prioritize by: 1) Latest year, 2) High confidence, 3) Context quality
+    return matches.sort((a, b) => {
+      // Latest year first
+      if (a.year && b.year) {
+        const yearA = parseInt(a.year);
+        const yearB = parseInt(b.year);
+        if (yearA !== yearB) return yearB - yearA;
+      } else if (a.year && !b.year) return -1;
+      else if (!a.year && b.year) return 1;
+      
+      // Higher confidence first
+      const confidenceOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+      const confDiff = confidenceOrder[a.confidence] - confidenceOrder[b.confidence];
+      if (confDiff !== 0) return -confDiff;
+      
+      // Prefer shorter, more specific context
+      return a.context.length - b.context.length;
+    })[0];
+  }
+
+  private static detectCurrency(valueStr: string, context: string): CurrencyInfo | null {
+    // Check for currency symbols in the value string
+    for (const [symbol, info] of Object.entries(SUPPORTED_CURRENCIES)) {
+      if (valueStr.includes(symbol) || context.toLowerCase().includes(symbol.toLowerCase())) {
+        return info;
+      }
+    }
+    
+    // Default to USD if no currency found
+    return SUPPORTED_CURRENCIES['$'];
+  }
+
+  private static extractYear(context: string): string | undefined {
+    // Look for FY2024, 2024, etc.
+    const yearMatch = context.match(/(?:FY|fy)?\s?(\d{4})/);
+    return yearMatch ? yearMatch[1] : undefined;
+  }
+
+  private static calculateConfidence(context: string, keyword: string, year?: string): 'high' | 'medium' | 'low' {
+    let score = 0;
+    
+    // Year context increases confidence
+    if (year && parseInt(year) >= 2023) score += 2;
+    
+    // Exact keyword match increases confidence
+    if (context.toLowerCase().includes(keyword)) score += 2;
+    
+    // Recent/current context increases confidence
+    if (context.toLowerCase().includes('current') || context.toLowerCase().includes('latest')) score += 1;
+    
+    // Avoid secondary/adjusted figures
+    if (context.toLowerCase().includes('underlying') || context.toLowerCase().includes('adjusted')) score -= 1;
+    
+    if (score >= 3) return 'high';
+    if (score >= 1) return 'medium';
+    return 'low';
+  }
+
+  private static parseFinancialValueEnhanced(valueStr: string): number | null {
+    const cleanValue = valueStr.replace(/[S$€£¥,\s]/g, '').toLowerCase();
+    const numberPart = parseFloat(cleanValue.replace(/[^\d.]/g, ''));
+    
+    if (isNaN(numberPart)) return null;
+    
+    if (cleanValue.includes('billion') || cleanValue.includes('b')) {
+      return numberPart * 1000000000;
+    } else if (cleanValue.includes('million') || cleanValue.includes('m')) {
+      return numberPart * 1000000;
+    } else if (cleanValue.includes('thousand') || cleanValue.includes('k')) {
+      return numberPart * 1000;
+    }
+    
+    return numberPart * 1000000; // Assume millions if no scale specified
+  }
+
+  private static extractRevenueFallback(analysisData: AnalysisData): number | null {
     const allText = this.getAllAnalysisText(analysisData).toLowerCase();
     
-    // Try exact keyword matches first
     for (const keyword of financialKeywords.revenue) {
       const match = this.findFinancialValue(allText, keyword);
       if (match) return match;
     }
     
-    // Fallback to pattern matching
     const patternMatch = allText.match(fallbackPatterns.revenue);
     if (patternMatch) {
-      return this.parseFinancialValue(patternMatch[1]);
+      return this.parseFinancialValue(patternMatch[2]);
     }
     
     return null;
   }
 
-  static extractProfit(analysisData: AnalysisData): number | null {
+  private static extractProfitFallback(analysisData: AnalysisData): number | null {
     const allText = this.getAllAnalysisText(analysisData).toLowerCase();
     
-    // Try exact keyword matches first
     for (const keyword of financialKeywords.profit) {
       const match = this.findFinancialValue(allText, keyword);
       if (match) return match;
     }
     
-    // Look for profit/income patterns
-    const profitPattern = /(?:profit|income|earnings).*?(\$?[\d,]+\.?\d*\s?(million|billion|thousand))/i;
+    const profitPattern = /(?:profit|income|earnings).*?([S$€£¥]?[\d,]+\.?\d*\s?(million|billion|thousand))/i;
     const patternMatch = allText.match(profitPattern);
     if (patternMatch) {
       return this.parseFinancialValue(patternMatch[1]);
@@ -119,19 +315,20 @@ class FinancialDataExtractor {
     return (profit / revenue) * 100;
   }
 
-  static formatFinancialValue(value: number | null, type: 'currency' | 'number' | 'percentage'): string {
+  static formatFinancialValue(value: number | null, type: 'currency' | 'number' | 'percentage', currency?: CurrencyInfo): string {
     if (value === null || value === undefined) return 'N/A';
     
     switch (type) {
       case 'currency':
+        const currencySymbol = currency?.symbol || '$';
         if (value >= 1000000000) {
-          return `$${(value / 1000000000).toFixed(1)}B`;
+          return `${currencySymbol}${(value / 1000000000).toFixed(1)}B`;
         } else if (value >= 1000000) {
-          return `$${(value / 1000000).toFixed(1)}M`;
+          return `${currencySymbol}${(value / 1000000).toFixed(1)}M`;
         } else if (value >= 1000) {
-          return `$${(value / 1000).toFixed(1)}K`;
+          return `${currencySymbol}${(value / 1000).toFixed(1)}K`;
         }
-        return `$${value.toLocaleString()}`;
+        return `${currencySymbol}${value.toLocaleString()}`;
       
       case 'number':
         return value.toLocaleString();
@@ -142,6 +339,26 @@ class FinancialDataExtractor {
       default:
         return value.toString();
     }
+  }
+
+  static getExtractedCurrency(analysisData: AnalysisData): CurrencyInfo {
+    try {
+      const revenueMatch = this.extractRevenueWithContext(analysisData);
+      if (revenueMatch?.currency) return revenueMatch.currency;
+      
+      const profitMatch = this.extractProfitWithContext(analysisData);
+      if (profitMatch?.currency) return profitMatch.currency;
+    } catch (error) {
+      // Fallback to detecting currency from text
+      const allText = this.getAllAnalysisText(analysisData);
+      for (const [symbol, info] of Object.entries(SUPPORTED_CURRENCIES)) {
+        if (allText.includes(symbol)) {
+          return info;
+        }
+      }
+    }
+    
+    return SUPPORTED_CURRENCIES['$']; // Default to USD
   }
 
   private static getAllAnalysisText(analysisData: AnalysisData): string {
@@ -266,6 +483,7 @@ export const chartTemplates: ChartTemplate[] = [
       const revenue = FinancialDataExtractor.extractRevenue(analysisData);
       const profit = FinancialDataExtractor.extractProfit(analysisData);
       const employees = FinancialDataExtractor.extractEmployees(analysisData);
+      const currency = FinancialDataExtractor.getExtractedCurrency(analysisData);
       
       const profitMargin = (revenue && profit) 
         ? FinancialDataExtractor.calculateProfitMargin(revenue, profit)
@@ -275,13 +493,13 @@ export const chartTemplates: ChartTemplate[] = [
         {
           name: 'Total Revenue',
           value: revenue || 0,
-          description: revenue ? FinancialDataExtractor.formatFinancialValue(revenue, 'currency') : 'Data not available',
+          description: revenue ? FinancialDataExtractor.formatFinancialValue(revenue, 'currency', currency) : 'Data not available',
           category: 'financial'
         },
         {
           name: 'Net Profit',
           value: profit || 0,
-          description: profit ? FinancialDataExtractor.formatFinancialValue(profit, 'currency') : 'Data not available',
+          description: profit ? FinancialDataExtractor.formatFinancialValue(profit, 'currency', currency) : 'Data not available',
           category: 'financial'
         },
         {
@@ -307,7 +525,7 @@ export const chartTemplates: ChartTemplate[] = [
         title: 'Financial Key Metrics',
         data: financialData,
         colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
-        description: 'Key financial indicators extracted from the annual report',
+        description: `Key financial indicators extracted from the annual report (${currency.code})`,
         insights: analysisData.businessContext.filter(insight => 
           insight.dataPoint.toLowerCase().includes('revenue') ||
           insight.dataPoint.toLowerCase().includes('profit') ||
