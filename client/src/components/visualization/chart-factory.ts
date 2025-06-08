@@ -53,7 +53,24 @@ const SUPPORTED_CURRENCIES: Record<string, CurrencyInfo> = {
   '¥': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
   'JPY': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
   'RM': { symbol: 'RM', code: 'MYR', name: 'Malaysian Ringgit' },
-  'MYR': { symbol: 'RM', code: 'MYR', name: 'Malaysian Ringgit' }
+  'MYR': { symbol: 'RM', code: 'MYR', name: 'Malaysian Ringgit' },
+  '₹': { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
+  'INR': { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
+  'CNY': { symbol: '¥', code: 'CNY', name: 'Chinese Yuan' },
+  'HK$': { symbol: 'HK$', code: 'HKD', name: 'Hong Kong Dollar' },
+  'HKD': { symbol: 'HK$', code: 'HKD', name: 'Hong Kong Dollar' },
+  '฿': { symbol: '฿', code: 'THB', name: 'Thai Baht' },
+  'THB': { symbol: '฿', code: 'THB', name: 'Thai Baht' },
+  'Rp': { symbol: 'Rp', code: 'IDR', name: 'Indonesian Rupiah' },
+  'IDR': { symbol: 'Rp', code: 'IDR', name: 'Indonesian Rupiah' },
+  '₱': { symbol: '₱', code: 'PHP', name: 'Philippine Peso' },
+  'PHP': { symbol: '₱', code: 'PHP', name: 'Philippine Peso' },
+  '₩': { symbol: '₩', code: 'KRW', name: 'South Korean Won' },
+  'KRW': { symbol: '₩', code: 'KRW', name: 'South Korean Won' },
+  'A$': { symbol: 'A$', code: 'AUD', name: 'Australian Dollar' },
+  'AUD': { symbol: 'A$', code: 'AUD', name: 'Australian Dollar' },
+  'C$': { symbol: 'C$', code: 'CAD', name: 'Canadian Dollar' },
+  'CAD': { symbol: 'C$', code: 'CAD', name: 'Canadian Dollar' }
 };
 
 // Financial keywords for consistent extraction
@@ -98,9 +115,9 @@ class FinancialDataExtractor {
 
   static extractProfit(analysisData: AnalysisData): number | null {
     try {
-      const enhanced = this.extractProfitWithContext(analysisData);
-      if (enhanced && enhanced.confidence !== 'low') {
-        return enhanced.value;
+      const enhanced = this.extractProfitIsolated(analysisData);
+      if (enhanced) {
+        return enhanced;
       }
     } catch (error) {
       console.warn('Enhanced profit extraction failed, using fallback');
@@ -108,6 +125,38 @@ class FinancialDataExtractor {
     
     // Fallback to original logic
     return this.extractProfitFallback(analysisData);
+  }
+
+  private static extractProfitIsolated(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    
+    // Look for profit-specific contexts, avoiding revenue sections
+    const profitKeywords = ['net profit', 'net income', 'profit after tax', 'net earnings'];
+    const currency = this.getExtractedCurrency(analysisData);
+    
+    for (const keyword of profitKeywords) {
+      const keywordRegex = new RegExp(`(${keyword})[^.]*?(${currency.symbol}?[\\d,]+\\.?\\d*\\s?(?:million|billion|thousand|m|b))`, 'gi');
+      const matches = allText.match(keywordRegex);
+      
+      if (matches) {
+        for (const match of matches) {
+          // Skip if this appears to be in a revenue context
+          if (match.toLowerCase().includes('revenue') || match.toLowerCase().includes('sales')) {
+            continue;
+          }
+          
+          const valueMatch = match.match(/([\d,]+\.?\d*)\s?(million|billion|thousand|m|b)/i);
+          if (valueMatch) {
+            const value = this.parseFinancialValueEnhanced(`${valueMatch[1]} ${valueMatch[2]}`);
+            if (value) {
+              return value;
+            }
+          }
+        }
+      }
+    }
+    
+    return null;
   }
 
   private static extractRevenueWithContext(analysisData: AnalysisData): FinancialMatch | null {
@@ -410,19 +459,22 @@ class FinancialDataExtractor {
   }
 
   static getExtractedCurrency(analysisData: AnalysisData): CurrencyInfo {
-    try {
-      const revenueMatch = this.extractRevenueWithContext(analysisData);
-      if (revenueMatch?.currency) return revenueMatch.currency;
-      
-      const profitMatch = this.extractProfitWithContext(analysisData);
-      if (profitMatch?.currency) return profitMatch.currency;
-    } catch (error) {
-      // Fallback to detecting currency from text
-      const allText = this.getAllAnalysisText(analysisData);
-      for (const [symbol, info] of Object.entries(SUPPORTED_CURRENCIES)) {
-        if (allText.includes(symbol)) {
-          return info;
-        }
+    const allText = this.getAllAnalysisText(analysisData);
+    
+    // Priority order: most specific currency symbols first to avoid conflicts
+    const currencyPriority = ['HK$', 'A$', 'C$', 'S$', 'RM', '₹', '₱', '฿', 'Rp', '₩', '¥', '€', '£', '$'];
+    
+    for (const symbol of currencyPriority) {
+      if (allText.includes(symbol)) {
+        return SUPPORTED_CURRENCIES[symbol];
+      }
+    }
+    
+    // Check for currency codes in text
+    const currencyCodes = ['INR', 'CNY', 'HKD', 'THB', 'IDR', 'PHP', 'KRW', 'AUD', 'CAD', 'MYR', 'SGD', 'EUR', 'GBP', 'USD'];
+    for (const code of currencyCodes) {
+      if (allText.toUpperCase().includes(code)) {
+        return SUPPORTED_CURRENCIES[code];
       }
     }
     
@@ -548,10 +600,16 @@ export const chartTemplates: ChartTemplate[] = [
     description: 'Essential financial indicators from annual report',
     icon: 'DollarSign',
     generate: (analysisData: AnalysisData) => {
-      const revenue = FinancialDataExtractor.extractRevenue(analysisData);
-      const profit = FinancialDataExtractor.extractProfit(analysisData);
-      const employees = FinancialDataExtractor.extractEmployees(analysisData);
       const currency = FinancialDataExtractor.getExtractedCurrency(analysisData);
+      const revenue = FinancialDataExtractor.extractRevenue(analysisData);
+      let profit = FinancialDataExtractor.extractProfit(analysisData);
+      const employees = FinancialDataExtractor.extractEmployees(analysisData);
+      
+      // Financial validation: profit should not exceed revenue
+      if (revenue && profit && profit > revenue) {
+        console.warn('Profit extraction appears incorrect (profit > revenue), setting to null');
+        profit = null;
+      }
       
       const profitMargin = (revenue && profit) 
         ? FinancialDataExtractor.calculateProfitMargin(revenue, profit)
