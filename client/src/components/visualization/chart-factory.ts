@@ -101,16 +101,139 @@ interface FinancialMatch {
 class FinancialDataExtractor {
   static extractRevenue(analysisData: AnalysisData): number | null {
     try {
-      const enhanced = this.extractRevenueWithContext(analysisData);
-      if (enhanced && enhanced.confidence !== 'low') {
-        return enhanced.value;
+      const enhanced = this.extractRevenueMultiStrategy(analysisData);
+      if (enhanced) {
+        return enhanced;
       }
     } catch (error) {
-      console.warn('Enhanced revenue extraction failed, using fallback');
+      console.warn('Multi-strategy revenue extraction failed, using fallback');
     }
     
     // Fallback to original logic
     return this.extractRevenueFallback(analysisData);
+  }
+
+  private static extractRevenueMultiStrategy(analysisData: AnalysisData): number | null {
+    const strategies = [
+      () => this.extractRevenueScaled(analysisData),    // "$4.2B revenue"
+      () => this.extractRevenueFull(analysisData),      // "$4,241,838,000"
+      () => this.extractRevenueFiscal(analysisData),    // "Fiscal 2025 revenue"
+      () => this.extractRevenueContext(analysisData)    // Large numbers near "revenue"
+    ];
+    
+    for (const strategy of strategies) {
+      try {
+        const result = strategy();
+        if (result && this.validateRevenueRange(result)) {
+          return result;
+        }
+      } catch (error) {
+        console.warn(`Revenue extraction strategy failed:`, error);
+      }
+    }
+    
+    return null;
+  }
+
+  private static extractRevenueScaled(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    const currency = this.getExtractedCurrency(analysisData);
+    
+    // Look for scaled revenue formats like "$4.2B revenue"
+    const scaledPattern = new RegExp(`(?:fiscal\\s+\\d{4}\\s+)?(?:total\\s+|net\\s+|operating\\s+)?revenue[^.]*?(${currency.symbol}?[\\d,]+\\.?\\d*\\s?(?:billion|million|thousand|b|m))`, 'gi');
+    const matches = allText.match(scaledPattern);
+    
+    if (matches) {
+      for (const match of matches) {
+        const valueMatch = match.match(/([\d,]+\.?\d*)\s?(billion|million|thousand|b|m)/i);
+        if (valueMatch) {
+          return this.parseFinancialValueEnhanced(`${valueMatch[1]} ${valueMatch[2]}`);
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private static extractRevenueFull(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    const currency = this.getExtractedCurrency(analysisData);
+    
+    // Look for full digit revenue formats like "$4,241,838,000"
+    const fullPattern = new RegExp(`(?:fiscal\\s+\\d{4}\\s+)?(?:total\\s+|net\\s+|operating\\s+)?revenue[^.]*?(${currency.symbol}?[\\d,]{7,})`, 'gi');
+    const matches = allText.match(fullPattern);
+    
+    if (matches) {
+      for (const match of matches) {
+        const valueMatch = match.match(/([\\d,]{7,})/);
+        if (valueMatch) {
+          const value = parseInt(valueMatch[1].replace(/,/g, ''));
+          if (value >= 1000000) { // Minimum $1M for reasonable revenue
+            return value;
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private static extractRevenueFiscal(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    const currency = this.getExtractedCurrency(analysisData);
+    
+    // Look specifically for fiscal year revenue patterns
+    const fiscalPattern = new RegExp(`fiscal\\s+\\d{4}\\s+revenue[^.]*?(${currency.symbol}?[\\d,]+(?:\\.\\d+)?(?:\\s?(?:billion|million|thousand|b|m))?[^.]*?)`, 'gi');
+    const matches = allText.match(fiscalPattern);
+    
+    if (matches) {
+      for (const match of matches) {
+        // Try scaled format first
+        const scaledMatch = match.match(/([\d,]+\.?\d*)\s?(billion|million|thousand|b|m)/i);
+        if (scaledMatch) {
+          return this.parseFinancialValueEnhanced(`${scaledMatch[1]} ${scaledMatch[2]}`);
+        }
+        
+        // Try full format
+        const fullMatch = match.match(/([\\d,]{7,})/);
+        if (fullMatch) {
+          const value = parseInt(fullMatch[1].replace(/,/g, ''));
+          if (value >= 1000000) {
+            return value;
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private static extractRevenueContext(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData);
+    const currency = this.getExtractedCurrency(analysisData);
+    
+    // Look for large dollar amounts near revenue context
+    const contextPattern = new RegExp(`revenue[^.]{0,100}(${currency.symbol}?[\\d,]{7,})|([\\d,]{7,})[^.]{0,100}revenue`, 'gi');
+    const matches = allText.match(contextPattern);
+    
+    if (matches) {
+      for (const match of matches) {
+        const valueMatch = match.match(/([\\d,]{7,})/);
+        if (valueMatch) {
+          const value = parseInt(valueMatch[1].replace(/,/g, ''));
+          if (value >= 1000000) {
+            return value;
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private static validateRevenueRange(value: number): boolean {
+    // Reasonable range for enterprise revenue: $1M to $1T
+    return value >= 1000000 && value <= 1000000000000;
   }
 
   static extractProfit(analysisData: AnalysisData): number | null {
