@@ -7,6 +7,9 @@ export interface HRInsight {
   dataPoint: string;
   hrRelevance: string;
   conversationStarter: string;
+  sourceContext?: string;
+  confidence?: number;
+  pageReference?: string;
 }
 
 export interface HRAnalysisResult {
@@ -53,6 +56,9 @@ For each insight found, provide:
 1. The specific data point or quote (prioritize exact numbers, percentages, and dollar amounts)
 2. A brief "why this matters to HR" explanation
 3. A suggested conversation starter for the discovery call
+4. Source context (the surrounding text/section where this insight was found)
+5. Confidence level (1-10 scale, where 10 is highly confident in accuracy)
+6. Page reference if available (e.g., "Page 15", "Executive Summary")
 
 **CRITICAL: For financial and workforce metrics, always extract specific numerical values when available (e.g., "$15.1 billion revenue", "25,000 employees", "15% profit margin"). Include both current year and previous year figures to enable trend calculations. If exact figures aren't stated but percentages are given (e.g., "revenue increased 5%"), note this for calculation purposes.**
 
@@ -82,7 +88,10 @@ Please respond in valid JSON format with this structure:
     {
       "dataPoint": "Detailed quote or data with full context and supporting metrics",
       "hrRelevance": "Comprehensive explanation of strategic HR implications and operational impact",
-      "conversationStarter": "Substantive discovery question that demonstrates business understanding and opens multiple conversation paths"
+      "conversationStarter": "Substantive discovery question that demonstrates business understanding and opens multiple conversation paths",
+      "sourceContext": "Surrounding text and section context where this insight was extracted from",
+      "confidence": 8,
+      "pageReference": "Page number or section name where found"
     }
   ],
   "workforceInsights": [...],

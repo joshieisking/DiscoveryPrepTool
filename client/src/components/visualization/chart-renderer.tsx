@@ -20,6 +20,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableBadge } from "@/components/insight/expandable-badge";
 import type { ChartConfig, ChartDataPoint } from "./chart-factory";
 
 interface ChartRendererProps {
@@ -242,9 +243,12 @@ export default function ChartRenderer({ config, className }: ChartRendererProps)
           </h4>
           <div className="flex flex-wrap gap-2">
             {config.insights.slice(0, 3).map((insight, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                {insight.dataPoint.substring(0, 50)}...
-              </Badge>
+              <ExpandableBadge 
+                key={index} 
+                insight={insight}
+                variant="secondary"
+                className="text-xs"
+              />
             ))}
             {config.insights.length > 3 && (
               <Badge variant="outline" className="text-xs">
