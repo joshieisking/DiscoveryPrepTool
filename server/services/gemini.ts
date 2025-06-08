@@ -17,77 +17,63 @@ export interface HRAnalysisResult {
   strategicPeopleInitiatives: HRInsight[];
 }
 
-const HR_ANALYSIS_PROMPT = `You are analyzing an annual report to help a solution advisor prepare for a comprehensive discovery call with an HR leader. Your goal is to extract detailed insights that demonstrate deep business understanding and provide rich conversational material that positions the solution advisor as a knowledgeable business partner.
-
-ANALYSIS APPROACH:
-- Provide comprehensive, detailed analysis with multiple supporting data points
-- Include direct quotes and specific metrics wherever possible
-- Give rich context that helps the solution advisor understand the "story behind the numbers"
-- Focus on insights that reveal strategic priorities, operational challenges, and growth opportunities
-- Create substantial talking points that can sustain meaningful business conversations
+const HR_ANALYSIS_PROMPT = `You are analyzing an annual report to help a solution advisor prepare for a discovery call with an HR leader. Extract key insights that demonstrate business understanding and create talking points.
 
 From this annual report, extract and organize information into these 4 categories:
 
 **BUSINESS CONTEXT:**
-- Revenue growth rate, trajectory, and underlying performance drivers
-- Geographic expansion plans, new market strategies, or international presence
-- Major acquisitions, divestitures, restructuring initiatives, or strategic pivots
-- Overall business strategy, competitive positioning, and key priorities
-- Financial performance indicators that impact workforce investment capacity
+- Revenue growth rate and trajectory (include specific current year and previous year revenue figures)
+- Net profit/income figures and profit margin calculations (with exact amounts)
+- Total assets and employee count with precise numbers
+- Geographic expansion or new market plans
+- Geographic revenue breakdown by region/market (with percentages or amounts)
+- Major acquisitions, divestitures, or restructuring
+- Overall business strategy and priorities
 
 **WORKFORCE INSIGHTS:**
-- Total employee count, growth/reduction trends, and workforce composition
-- Geographic distribution of employees and regional talent strategies
-- Specific talent challenges, skill gaps, hiring priorities, or recruitment focus areas
-- Retention rates, turnover concerns, employee engagement metrics, or satisfaction initiatives
-- Diversity, equity & inclusion programs, workforce demographics, or cultural initiatives
-- Remote work policies, workplace transformation, or hybrid work strategies
+- Total employee count and growth/reduction trends (include exact current and previous year headcount)
+- Geographic distribution of employees (with specific percentages or numbers by region)
+- Specific talent challenges, skill gaps, or hiring priorities mentioned
+- Retention, turnover, or employee engagement issues (include specific percentages/scores)
+- Diversity, equity & inclusion initiatives or workforce demographics (with specific metrics)
 
 **OPERATIONAL CHALLENGES:**
-- Regulatory compliance requirements, changes in labor laws, or data privacy obligations
-- Technology transformation initiatives, digital modernization, or system upgrades
-- Cost reduction programs, efficiency initiatives, or operational optimization efforts
-- Industry-specific pressures, market disruptions, or competitive challenges
-- Supply chain, vendor management, or third-party relationship complexities
-- Risk management considerations that impact workforce planning
+- Regulatory compliance requirements or changes (especially labor laws, data privacy)
+- Technology transformation or digital initiatives (with investment amounts if mentioned)
+- Cost reduction or efficiency programs (include specific dollar amounts or percentages)
+- Industry-specific operational pressures
 
 **STRATEGIC PEOPLE INITIATIVES:**
-- ESG commitments, sustainability goals, or corporate responsibility programs affecting workforce
-- Learning & development investments, upskilling programs, or capability building initiatives
-- Culture change programs, employee experience improvements, or engagement strategies
-- Leadership development, succession planning, or talent pipeline initiatives
-- Performance management evolution, compensation strategy changes, or benefits enhancements
-- Innovation programs, digital adoption, or change management initiatives
-
-DETAILED OUTPUT REQUIREMENTS:
+- ESG or sustainability workforce commitments (with specific targets or investments)
+- Remote work, hybrid, or workplace transformation strategy
+- Learning & development or upskilling investments (include specific dollar amounts)
+- Culture change or employee experience initiatives (with metrics if available)
 
 For each insight found, provide:
+1. The specific data point or quote (prioritize exact numbers, percentages, and dollar amounts)
+2. A brief "why this matters to HR" explanation
+3. A suggested conversation starter for the discovery call
 
-1. **Comprehensive Data Point**: Include specific quotes, metrics, percentages, dollar amounts, timelines, and contextual details. When multiple related data points exist, include them all to paint a complete picture.
+**CRITICAL: For financial and workforce metrics, always extract specific numerical values when available (e.g., "$15.1 billion revenue", "25,000 employees", "15% profit margin"). Include both current year and previous year figures to enable trend calculations. If exact figures aren't stated but percentages are given (e.g., "revenue increased 5%"), note this for calculation purposes.**
 
-2. **Detailed HR Relevance**: Provide a thorough explanation of why this matters to HR, including:
-   - Strategic implications for workforce planning
-   - Operational impact on HR processes and systems
-   - Potential challenges or opportunities this creates
-   - Connection to broader HR transformation needs
+**Additionally, if available, provide a structured summary in this format:**
 
-3. **Substantive Conversation Starter**: Create thoughtful, multi-layered questions that:
-   - Demonstrate deep understanding of their business
-   - Connect financial/operational realities to HR challenges
-   - Open multiple conversation paths
-   - Position the solution advisor as a strategic partner
-   - Allow for follow-up questions and deeper exploration
+FINANCIAL METRICS:
+- Current Revenue: [amount]
+- Previous Revenue: [amount]  
+- Net Profit: [amount]
+- Profit Margin: [percentage]
+- Total Employees: [number]
+- Previous Year Employees: [number]
 
-QUALITY STANDARDS:
-- Each insight should provide enough detail for a 3-5 minute conversation
-- Include multiple angles and perspectives per category when data supports it
-- Ensure insights reveal both challenges and opportunities
-- Focus on areas where comprehensive HR technology platforms typically add value
-- Prioritize insights that suggest scale, complexity, or transformation needs
+GEOGRAPHIC DATA:
+- Countries/Markets: [number]
+- Employee Distribution: [breakdown by region with percentages]
+- Revenue Distribution: [breakdown by region if available]
 
-If certain categories have limited relevant information, provide what's available but note the gaps.
+If certain categories have no relevant information, simply note "No specific insights found."
 
-Target areas include: HR administration and operations, global payroll management, workforce scheduling and optimization, talent acquisition and management, employee learning and development programs, people analytics and reporting capabilities, regulatory compliance and risk management, employee experience and engagement platforms.
+Focus on insights related to HR administration, payroll operations, workforce scheduling and management, talent acquisition and development, employee learning programs, people analytics and reporting, and regulatory compliance - areas typically addressed by comprehensive HR technology platforms.
 
 Please respond in valid JSON format with this structure:
 {
