@@ -28,6 +28,8 @@ interface ChartRendererProps {
 }
 
 const MetricCardsRenderer = ({ data, colors, title, description }: ChartConfig) => {
+  const isFinancialDashboard = title === 'Financial Key Metrics';
+  
   return (
     <div className="space-y-4">
       <div>
@@ -35,17 +37,27 @@ const MetricCardsRenderer = ({ data, colors, title, description }: ChartConfig) 
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {data.map((item, index) => (
-          <Card key={item.name} className="text-center">
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold mb-2" style={{ color: colors[index % colors.length] }}>
-                {item.value}
-              </div>
-              <div className="text-sm font-medium mb-1">{item.name}</div>
-              <div className="text-xs text-muted-foreground">{item.description}</div>
-            </CardContent>
-          </Card>
-        ))}
+        {data.map((item, index) => {
+          const isDataAvailable = item.description !== 'Data not available';
+          
+          return (
+            <Card key={item.name} className={`text-center ${!isDataAvailable ? 'opacity-60' : ''}`}>
+              <CardContent className="pt-6">
+                <div 
+                  className="text-3xl font-bold mb-2" 
+                  style={{ color: isDataAvailable ? colors[index % colors.length] : '#9ca3af' }}
+                >
+                  {isFinancialDashboard && isDataAvailable ? item.description : (isDataAvailable ? item.value : 'N/A')}
+                </div>
+                <div className="text-sm font-medium mb-1">{item.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {isFinancialDashboard && !isDataAvailable ? item.description : 
+                   isFinancialDashboard ? 'From annual report' : item.description}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

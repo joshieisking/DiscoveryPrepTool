@@ -35,6 +35,165 @@ export interface ChartTemplate {
 }
 
 // Data extraction utilities
+// Financial keywords for consistent extraction
+const financialKeywords = {
+  revenue: ["total revenue", "net sales", "operating revenue", "turnover"],
+  profit: ["net income", "net profit", "profit after tax", "net earnings"],
+  employees: ["total employees", "workforce", "headcount", "number of employees"],
+  assets: ["total assets", "total resources"]
+};
+
+// When standard terms aren't found, look for these patterns
+const fallbackPatterns = {
+  revenue: /revenue.*?(\$?[\d,]+\.?\d*\s?(million|billion|thousand))/i,
+  employees: /employ.*?(\d{1,3}(?:,\d{3})*)/i,
+  countries: /(?:countries|markets|territories).*?(\d+)/i
+};
+
+class FinancialDataExtractor {
+  static extractRevenue(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData).toLowerCase();
+    
+    // Try exact keyword matches first
+    for (const keyword of financialKeywords.revenue) {
+      const match = this.findFinancialValue(allText, keyword);
+      if (match) return match;
+    }
+    
+    // Fallback to pattern matching
+    const patternMatch = allText.match(fallbackPatterns.revenue);
+    if (patternMatch) {
+      return this.parseFinancialValue(patternMatch[1]);
+    }
+    
+    return null;
+  }
+
+  static extractProfit(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData).toLowerCase();
+    
+    // Try exact keyword matches first
+    for (const keyword of financialKeywords.profit) {
+      const match = this.findFinancialValue(allText, keyword);
+      if (match) return match;
+    }
+    
+    // Look for profit/income patterns
+    const profitPattern = /(?:profit|income|earnings).*?(\$?[\d,]+\.?\d*\s?(million|billion|thousand))/i;
+    const patternMatch = allText.match(profitPattern);
+    if (patternMatch) {
+      return this.parseFinancialValue(patternMatch[1]);
+    }
+    
+    return null;
+  }
+
+  static extractEmployees(analysisData: AnalysisData): number | null {
+    const allText = this.getAllAnalysisText(analysisData).toLowerCase();
+    
+    // Try exact keyword matches first
+    for (const keyword of financialKeywords.employees) {
+      const keywordIndex = allText.indexOf(keyword);
+      if (keywordIndex !== -1) {
+        const context = allText.substring(keywordIndex, keywordIndex + 100);
+        const numberMatch = context.match(/(\d{1,3}(?:,\d{3})*)/);
+        if (numberMatch) {
+          const value = parseInt(numberMatch[1].replace(/,/g, ''));
+          if (value > 100) return value; // Sanity check for reasonable employee count
+        }
+      }
+    }
+    
+    // Fallback to pattern matching
+    const patternMatch = allText.match(fallbackPatterns.employees);
+    if (patternMatch) {
+      const value = parseInt(patternMatch[1].replace(/,/g, ''));
+      if (value > 100) return value;
+    }
+    
+    return null;
+  }
+
+  static calculateProfitMargin(revenue: number, profit: number): number {
+    if (!revenue || revenue === 0) return 0;
+    return (profit / revenue) * 100;
+  }
+
+  static formatFinancialValue(value: number | null, type: 'currency' | 'number' | 'percentage'): string {
+    if (value === null || value === undefined) return 'N/A';
+    
+    switch (type) {
+      case 'currency':
+        if (value >= 1000000000) {
+          return `$${(value / 1000000000).toFixed(1)}B`;
+        } else if (value >= 1000000) {
+          return `$${(value / 1000000).toFixed(1)}M`;
+        } else if (value >= 1000) {
+          return `$${(value / 1000).toFixed(1)}K`;
+        }
+        return `$${value.toLocaleString()}`;
+      
+      case 'number':
+        return value.toLocaleString();
+      
+      case 'percentage':
+        return `${value.toFixed(1)}%`;
+      
+      default:
+        return value.toString();
+    }
+  }
+
+  private static getAllAnalysisText(analysisData: AnalysisData): string {
+    const allInsights = [
+      ...analysisData.businessContext,
+      ...analysisData.workforceInsights,
+      ...analysisData.operationalChallenges,
+      ...analysisData.strategicPeopleInitiatives
+    ];
+    
+    return [
+      analysisData.summary,
+      ...allInsights.map(insight => `${insight.dataPoint} ${insight.hrRelevance}`)
+    ].join(' ');
+  }
+
+  private static findFinancialValue(text: string, keyword: string): number | null {
+    const keywordIndex = text.indexOf(keyword);
+    if (keywordIndex === -1) return null;
+    
+    // Look in a 150 character context around the keyword
+    const contextStart = Math.max(0, keywordIndex - 50);
+    const contextEnd = Math.min(text.length, keywordIndex + 100);
+    const context = text.substring(contextStart, contextEnd);
+    
+    // Find financial values near the keyword
+    const financialPattern = /(\$?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i;
+    const match = context.match(financialPattern);
+    
+    if (match) {
+      return this.parseFinancialValue(match[1]);
+    }
+    
+    return null;
+  }
+
+  private static parseFinancialValue(valueStr: string): number {
+    const cleanValue = valueStr.replace(/[$,\s]/g, '').toLowerCase();
+    const numberPart = parseFloat(cleanValue.replace(/[^\d.]/g, ''));
+    
+    if (cleanValue.includes('billion') || cleanValue.includes('b')) {
+      return numberPart * 1000000000;
+    } else if (cleanValue.includes('million') || cleanValue.includes('m')) {
+      return numberPart * 1000000;
+    } else if (cleanValue.includes('thousand') || cleanValue.includes('k')) {
+      return numberPart * 1000;
+    }
+    
+    return numberPart;
+  }
+}
+
 class DataExtractor {
   static extractNumbers(text: string): number[] {
     const numberRegex = /\b(\d+(?:\.\d+)?)\s*(?:%|percent|million|billion|thousand|k|m|b)?\b/gi;
@@ -98,6 +257,66 @@ class DataExtractor {
 
 // Chart template definitions
 export const chartTemplates: ChartTemplate[] = [
+  {
+    id: 'financial-dashboard',
+    name: 'Financial Key Metrics',
+    description: 'Essential financial indicators from annual report',
+    icon: 'DollarSign',
+    generate: (analysisData: AnalysisData) => {
+      const revenue = FinancialDataExtractor.extractRevenue(analysisData);
+      const profit = FinancialDataExtractor.extractProfit(analysisData);
+      const employees = FinancialDataExtractor.extractEmployees(analysisData);
+      
+      const profitMargin = (revenue && profit) 
+        ? FinancialDataExtractor.calculateProfitMargin(revenue, profit)
+        : null;
+
+      const financialData: ChartDataPoint[] = [
+        {
+          name: 'Total Revenue',
+          value: revenue || 0,
+          description: revenue ? FinancialDataExtractor.formatFinancialValue(revenue, 'currency') : 'Data not available',
+          category: 'financial'
+        },
+        {
+          name: 'Net Profit',
+          value: profit || 0,
+          description: profit ? FinancialDataExtractor.formatFinancialValue(profit, 'currency') : 'Data not available',
+          category: 'financial'
+        },
+        {
+          name: 'Total Employees',
+          value: employees || 0,
+          description: employees ? FinancialDataExtractor.formatFinancialValue(employees, 'number') : 'Data not available',
+          category: 'workforce'
+        },
+        {
+          name: 'Profit Margin',
+          value: profitMargin || 0,
+          description: profitMargin ? FinancialDataExtractor.formatFinancialValue(profitMargin, 'percentage') : 'Data not available',
+          category: 'financial'
+        }
+      ];
+
+      // Only return the chart if we have at least one piece of financial data
+      const hasFinancialData = revenue || profit || employees;
+      if (!hasFinancialData) return null;
+
+      return {
+        type: 'metric-cards',
+        title: 'Financial Key Metrics',
+        data: financialData,
+        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+        description: 'Key financial indicators extracted from the annual report',
+        insights: analysisData.businessContext.filter(insight => 
+          insight.dataPoint.toLowerCase().includes('revenue') ||
+          insight.dataPoint.toLowerCase().includes('profit') ||
+          insight.dataPoint.toLowerCase().includes('income') ||
+          insight.dataPoint.toLowerCase().includes('employ')
+        )
+      };
+    }
+  },
   {
     id: 'geographic-distribution',
     name: 'Geographic Distribution',
@@ -404,10 +623,22 @@ export class ChartFactory {
   static generateChartConfigs(analysisData: AnalysisData): ChartConfig[] {
     const configs: ChartConfig[] = [];
     
+    // Always try financial dashboard first
+    const financialTemplate = chartTemplates.find(t => t.id === 'financial-dashboard');
+    if (financialTemplate) {
+      const financialConfig = financialTemplate.generate(analysisData);
+      if (financialConfig) {
+        configs.push(financialConfig);
+      }
+    }
+    
+    // Try remaining templates and add successful generations
     chartTemplates.forEach(template => {
-      const config = template.generate(analysisData);
-      if (config) {
-        configs.push(config);
+      if (template.id !== 'financial-dashboard') { // Skip financial dashboard as it's already processed
+        const config = template.generate(analysisData);
+        if (config) {
+          configs.push(config);
+        }
       }
     });
 
