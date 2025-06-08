@@ -51,7 +51,9 @@ const SUPPORTED_CURRENCIES: Record<string, CurrencyInfo> = {
   '£': { symbol: '£', code: 'GBP', name: 'British Pound' },
   'GBP': { symbol: '£', code: 'GBP', name: 'British Pound' },
   '¥': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
-  'JPY': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' }
+  'JPY': { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
+  'RM': { symbol: 'RM', code: 'MYR', name: 'Malaysian Ringgit' },
+  'MYR': { symbol: 'RM', code: 'MYR', name: 'Malaysian Ringgit' }
 };
 
 // Financial keywords for consistent extraction
@@ -65,8 +67,8 @@ const financialKeywords = {
 
 // Enhanced patterns with multi-currency support
 const fallbackPatterns = {
-  revenue: /(revenue|sales|income).*?([S$€£¥]?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
-  profit: /(profit|income|earnings).*?([S$€£¥]?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
+  revenue: /(revenue|sales|income).*?([S$€£¥]?RM?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
+  profit: /(profit|income|earnings).*?([S$€£¥]?RM?[\d,]+\.?\d*\s?(million|billion|thousand|m|b))/i,
   employees: /employ.*?(\d{1,3}(?:,\d{3})*)/i,
   countries: /(?:countries|markets|territories).*?(\d+)/i
 };
@@ -147,7 +149,7 @@ class FinancialDataExtractor {
     const keywords = financialKeywords[type];
     
     keywords.forEach(keyword => {
-      const regex = new RegExp(`(${keyword.replace(/\s+/g, '\\s+')})([^.]*?)([S$€£¥]?[\\d,]+\\.?\\d*\\s?(?:million|billion|thousand|m|b))`, 'gi');
+      const regex = new RegExp(`(${keyword.replace(/\s+/g, '\\s+')})([^.]*?)((?:RM|S\\$|\\$|€|£|¥)?[\\d,]+\\.?\\d*\\s?(?:million|billion|thousand|m|b))`, 'gi');
       let match;
       
       while ((match = regex.exec(text)) !== null) {
@@ -197,9 +199,21 @@ class FinancialDataExtractor {
   }
 
   private static detectCurrency(valueStr: string, context: string): CurrencyInfo | null {
-    // Check for currency symbols in the value string
-    for (const [symbol, info] of Object.entries(SUPPORTED_CURRENCIES)) {
-      if (valueStr.includes(symbol) || context.toLowerCase().includes(symbol.toLowerCase())) {
+    const combinedText = `${valueStr} ${context}`.toLowerCase();
+    
+    // Check for currency symbols in order of specificity (most specific first)
+    const currencyPriority = ['RM', 'S$', '€', '£', '¥', '$'];
+    
+    for (const symbol of currencyPriority) {
+      const info = SUPPORTED_CURRENCIES[symbol];
+      if (info && (valueStr.includes(symbol) || combinedText.includes(symbol.toLowerCase()))) {
+        return info;
+      }
+    }
+    
+    // Check for currency codes in context
+    for (const [code, info] of Object.entries(SUPPORTED_CURRENCIES)) {
+      if (combinedText.includes(code.toLowerCase())) {
         return info;
       }
     }
@@ -235,11 +249,13 @@ class FinancialDataExtractor {
   }
 
   private static parseFinancialValueEnhanced(valueStr: string): number | null {
-    const cleanValue = valueStr.replace(/[S$€£¥,\s]/g, '').toLowerCase();
+    // Remove currency symbols and clean the value, keeping scale indicators
+    const cleanValue = valueStr.replace(/[S$€£¥RM,\s]/g, '').toLowerCase();
     const numberPart = parseFloat(cleanValue.replace(/[^\d.]/g, ''));
     
     if (isNaN(numberPart)) return null;
     
+    // Apply scale multipliers
     if (cleanValue.includes('billion') || cleanValue.includes('b')) {
       return numberPart * 1000000000;
     } else if (cleanValue.includes('million') || cleanValue.includes('m')) {
@@ -285,26 +301,78 @@ class FinancialDataExtractor {
   }
 
   static extractEmployees(analysisData: AnalysisData): number | null {
-    const allText = this.getAllAnalysisText(analysisData).toLowerCase();
+    const allText = this.getAllAnalysisText(analysisData);
+    const lowerText = allText.toLowerCase();
     
-    // Try exact keyword matches first
-    for (const keyword of financialKeywords.employees) {
-      const keywordIndex = allText.indexOf(keyword);
-      if (keywordIndex !== -1) {
-        const context = allText.substring(keywordIndex, keywordIndex + 100);
-        const numberMatch = context.match(/(\d{1,3}(?:,\d{3})*)/);
-        if (numberMatch) {
-          const value = parseInt(numberMatch[1].replace(/,/g, ''));
-          if (value > 100) return value; // Sanity check for reasonable employee count
+    // Check if explicitly stated as not available
+    const notAvailablePatterns = [
+      'not explicitly stated',
+      'not stated',
+      'not mentioned',
+      'not disclosed',
+      'not provided',
+      'not available',
+      'not specified'
+    ];
+    
+    const hasEmployeeContext = lowerText.includes('employee') || lowerText.includes('workforce') || lowerText.includes('headcount');
+    if (hasEmployeeContext) {
+      for (const pattern of notAvailablePatterns) {
+        if (lowerText.includes(pattern)) {
+          return null; // Explicitly not available
         }
       }
     }
     
-    // Fallback to pattern matching
-    const patternMatch = allText.match(fallbackPatterns.employees);
-    if (patternMatch) {
-      const value = parseInt(patternMatch[1].replace(/,/g, ''));
-      if (value > 100) return value;
+    // Try exact keyword matches with improved patterns
+    for (const keyword of financialKeywords.employees) {
+      const keywordIndex = lowerText.indexOf(keyword);
+      if (keywordIndex !== -1) {
+        const contextStart = Math.max(0, keywordIndex - 50);
+        const contextEnd = Math.min(allText.length, keywordIndex + 150);
+        const context = allText.substring(contextStart, contextEnd);
+        
+        // Enhanced employee number patterns for larger companies
+        const enhancedEmployeePattern = /(\d{1,3}(?:,\d{3})*(?:\+|k|thousand)?)/gi;
+        const matches = context.match(enhancedEmployeePattern);
+        
+        if (matches) {
+          for (const match of matches) {
+            let value = parseInt(match.replace(/[,+k]/g, ''));
+            
+            // Handle 'k' or 'thousand' suffixes
+            if (match.toLowerCase().includes('k') || match.toLowerCase().includes('thousand')) {
+              value *= 1000;
+            }
+            
+            // Improved validation for enterprise-scale companies
+            if (value >= 500 && value <= 500000) { // Reasonable range for large corporations
+              return value;
+            }
+          }
+        }
+      }
+    }
+    
+    // Enhanced fallback pattern for employees
+    const enhancedPattern = /(?:employ|workforce|headcount|staff).*?(\d{1,3}(?:,\d{3})*(?:\+|k|thousand)?)/gi;
+    const fallbackMatches = allText.match(enhancedPattern);
+    
+    if (fallbackMatches) {
+      for (const match of fallbackMatches) {
+        const numberMatch = match.match(/(\d{1,3}(?:,\d{3})*(?:\+|k|thousand)?)/i);
+        if (numberMatch) {
+          let value = parseInt(numberMatch[1].replace(/[,+k]/g, ''));
+          
+          if (numberMatch[1].toLowerCase().includes('k') || numberMatch[1].toLowerCase().includes('thousand')) {
+            value *= 1000;
+          }
+          
+          if (value >= 500 && value <= 500000) {
+            return value;
+          }
+        }
+      }
     }
     
     return null;
