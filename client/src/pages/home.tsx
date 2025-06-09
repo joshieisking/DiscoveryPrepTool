@@ -7,7 +7,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <section className="text-center mb-12">
@@ -42,7 +41,6 @@ export default function Home() {
         {/* Upload History Section */}
         <UploadHistory />
       </main>
-
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -57,7 +55,7 @@ export default function Home() {
               <a href="#" className="hover:text-slate-700 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-slate-700 transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-slate-700 transition-colors">Support</a>
-              <span>© 2024 Sales Intelligence Tools</span>
+              <span>© 2025 ACES</span>
             </div>
           </div>
         </div>
