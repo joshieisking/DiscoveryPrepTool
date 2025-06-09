@@ -107,8 +107,7 @@ export default function VisualizationControls({
   // For financial view, show only the Financial Key Metrics
   if (defaultView === 'financial') {
     const financialCharts = chartConfigs.filter(config => 
-      config.title.toLowerCase().includes('financial') || 
-      config.title.toLowerCase().includes('key metrics')
+      config.title === 'Financial Key Metrics'
     );
     
     return (

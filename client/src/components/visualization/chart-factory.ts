@@ -949,63 +949,7 @@ export const chartTemplates: ChartTemplate[] = [
     }
   },
 
-  {
-    id: 'financial-timeline',
-    name: 'Financial Performance Timeline',
-    description: 'Revenue and growth trends over time',
-    icon: 'TrendingUp',
-    generate: (analysisData: AnalysisData) => {
-      const financialInsights = analysisData.businessContext.filter(insight =>
-        insight.dataPoint.toLowerCase().includes('revenue') ||
-        insight.dataPoint.toLowerCase().includes('growth') ||
-        insight.dataPoint.toLowerCase().includes('financial')
-      );
 
-      const timelineData: ChartDataPoint[] = [];
-      const years = ['2020', '2021', '2022', '2023', '2024'];
-      
-      financialInsights.forEach(insight => {
-        const text = insight.dataPoint;
-        const numbers = DataExtractor.extractNumbers(text);
-        const temporalTerms = DataExtractor.extractTemporalTerms(text);
-
-        years.forEach((year, index) => {
-          if (text.includes(year) && numbers.length > index) {
-            timelineData.push({
-              name: year,
-              value: numbers[index],
-              description: insight.hrRelevance,
-              category: 'financial'
-            });
-          }
-        });
-      });
-
-      // If no specific data, create trend based on growth indicators
-      if (timelineData.length === 0 && financialInsights.length > 0) {
-        const baseValue = 100;
-        years.forEach((year, index) => {
-          timelineData.push({
-            name: year,
-            value: baseValue + (index * 20),
-            description: `Financial performance indicator for ${year}`,
-            category: 'financial'
-          });
-        });
-      }
-
-      if (timelineData.length === 0) return null;
-
-      return {
-        type: 'line',
-        title: 'Financial Performance Timeline',
-        data: timelineData.sort((a, b) => a.name.localeCompare(b.name)),
-        colors: ['#3b82f6'],
-        description: 'Company financial performance and growth trends over time',
-        insights: financialInsights
-      };
-    }
-  },
 
   {
     id: 'skills-gap-analysis',
@@ -1122,56 +1066,7 @@ export const chartTemplates: ChartTemplate[] = [
     }
   },
 
-  {
-    id: 'key-metrics-dashboard',
-    name: 'Key Metrics Dashboard',
-    description: 'Quick stats overview for discovery calls',
-    icon: 'BarChart3',
-    generate: (analysisData: AnalysisData) => {
-      const allInsights = [
-        ...analysisData.businessContext,
-        ...analysisData.workforceInsights,
-        ...analysisData.operationalChallenges,
-        ...analysisData.strategicPeopleInitiatives
-      ];
 
-      const metrics: ChartDataPoint[] = [
-        {
-          name: 'Business Context Items',
-          value: analysisData.businessContext.length,
-          description: 'Key business context insights identified',
-          category: 'business'
-        },
-        {
-          name: 'Workforce Insights',
-          value: analysisData.workforceInsights.length,
-          description: 'Workforce-related insights discovered',
-          category: 'workforce'
-        },
-        {
-          name: 'Operational Challenges',
-          value: analysisData.operationalChallenges.length,
-          description: 'Operational challenges requiring attention',
-          category: 'operational'
-        },
-        {
-          name: 'Strategic Initiatives',
-          value: analysisData.strategicPeopleInitiatives.length,
-          description: 'Strategic people initiatives identified',
-          category: 'strategic'
-        }
-      ];
-
-      return {
-        type: 'metric-cards',
-        title: 'Key Metrics Overview',
-        data: metrics,
-        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
-        description: 'High-level overview of analysis insights across all categories',
-        insights: allInsights
-      };
-    }
-  }
 ];
 
 export class ChartFactory {
