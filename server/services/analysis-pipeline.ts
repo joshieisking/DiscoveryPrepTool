@@ -162,14 +162,24 @@ async function executeStagesParallel(filePath: string): Promise<PipelineResult> 
 export async function analyzeDocumentPipeline(
   filePath: string,
 ): Promise<PipelineResult> {
+  // Debug feature flag evaluation
+  console.log("Feature flag evaluation:", {
+    PARALLEL_PROCESSING: FEATURES.PARALLEL_PROCESSING,
+    env_var: process.env.ENABLE_PARALLEL_PROCESSING,
+    features_object: FEATURES
+  });
+  
   // Feature flag check for parallel processing
   if (FEATURES.PARALLEL_PROCESSING) {
+    console.log("Parallel processing enabled - executing parallel pipeline");
     try {
       return await executeStagesParallel(filePath);
     } catch (error) {
       console.warn("Parallel processing failed, falling back to sequential:", error);
       // Continue to sequential execution below
     }
+  } else {
+    console.log("Parallel processing disabled - executing sequential pipeline");
   }
 
   // Sequential execution (existing implementation)
