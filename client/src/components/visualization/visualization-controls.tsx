@@ -16,12 +16,12 @@ import ChartExport from "./chart-export";
 import { ChartFactory, chartTemplates, type ChartConfig } from "./chart-factory";
 import type { AnalysisData } from "@/types/upload";
 
-export type ViewMode = 'text' | 'visual' | 'combined';
+export type ViewMode = 'text' | 'visual' | 'combined' | 'financial';
 
 interface VisualizationControlsProps {
   analysisData: AnalysisData;
   fileName: string;
-  defaultView?: ViewMode;
+  defaultView?: ViewMode | 'financial';
   onViewModeChange?: (mode: ViewMode) => void;
 }
 
@@ -102,6 +102,26 @@ export default function VisualizationControls({
 
   if (viewMode === 'text') {
     return null; // Text view is handled by the parent component
+  }
+
+  // For financial view, show only the Financial Key Metrics
+  if (defaultView === 'financial') {
+    const financialCharts = chartConfigs.filter(config => 
+      config.title.toLowerCase().includes('financial') || 
+      config.title.toLowerCase().includes('key metrics')
+    );
+    
+    return (
+      <div className="space-y-6">
+        {financialCharts.map((config, index) => (
+          <Card key={index}>
+            <CardContent className="pt-6">
+              <ChartRenderer config={config} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   return (

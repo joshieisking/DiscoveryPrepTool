@@ -206,39 +206,30 @@ export default function Analysis() {
           </div>
         </div>
 
-        {/* View Mode Tabs */}
-        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)} className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="text" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Text View
-            </TabsTrigger>
-            <TabsTrigger value="visual" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Visual View
-            </TabsTrigger>
-            <TabsTrigger value="combined" className="flex items-center gap-2">
-              <Target className="w-4 h-4" />
-              Combined View
-            </TabsTrigger>
-          </TabsList>
+        {/* Simplified Single View */}
+        <div className="space-y-8">
+          {/* Executive Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Target className="w-5 h-5 mr-2 text-primary" />
+                Executive Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 leading-relaxed mb-6">{analysisData.summary}</p>
+            </CardContent>
+          </Card>
 
-          {/* Text View */}
-          <TabsContent value="text" className="space-y-6">
-            {/* Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Target className="w-5 h-5 mr-2 text-primary" />
-                  Executive Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
-              </CardContent>
-            </Card>
+          {/* Financial Key Metrics */}
+          <VisualizationControls 
+            analysisData={analysisData}
+            fileName={upload.fileName}
+            defaultView="financial"
+          />
 
-            {/* Business Context */}
+          {/* HR Insights */}
+          <div className="grid gap-6">
             <InsightSection 
               title="Business Context" 
               icon={<Building className="w-5 h-5 mr-2 text-primary" />}
@@ -246,7 +237,6 @@ export default function Analysis() {
               description="Revenue, expansion, and strategic priorities"
             />
 
-            {/* Workforce Insights */}
             <InsightSection 
               title="Workforce Insights" 
               icon={<Users className="w-5 h-5 mr-2 text-primary" />}
@@ -254,7 +244,6 @@ export default function Analysis() {
               description="Employee data, hiring challenges, and talent initiatives"
             />
 
-            {/* Operational Challenges */}
             <InsightSection 
               title="Operational Challenges" 
               icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
@@ -262,80 +251,14 @@ export default function Analysis() {
               description="Compliance, technology, and efficiency initiatives"
             />
 
-            {/* Strategic People Initiatives */}
             <InsightSection 
               title="Strategic People Initiatives" 
               icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.strategicPeopleInitiatives}
               description="ESG, remote work, learning, and culture initiatives"
             />
-          </TabsContent>
-
-          {/* Visual View */}
-          <TabsContent value="visual">
-            <VisualizationControls 
-              analysisData={analysisData}
-              fileName={upload.fileName}
-              defaultView="visual"
-              onViewModeChange={setViewMode}
-            />
-          </TabsContent>
-
-          {/* Combined View */}
-          <TabsContent value="combined" className="space-y-8">
-            {/* Executive Summary with Charts */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Target className="w-5 h-5 mr-2 text-primary" />
-                  Executive Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 leading-relaxed mb-6">{analysisData.summary}</p>
-                
-                {/* Key Metrics Dashboard */}
-                <VisualizationControls 
-                  analysisData={analysisData}
-                  fileName={upload.fileName}
-                  defaultView="combined"
-                  onViewModeChange={setViewMode}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Text Insights with Expandable Details */}
-            <div className="grid gap-6">
-              <InsightSection 
-                title="Business Context" 
-                icon={<Building className="w-5 h-5 mr-2 text-primary" />}
-                insights={analysisData.businessContext}
-                description="Revenue, expansion, and strategic priorities"
-              />
-
-              <InsightSection 
-                title="Workforce Insights" 
-                icon={<Users className="w-5 h-5 mr-2 text-primary" />}
-                insights={analysisData.workforceInsights}
-                description="Employee data, hiring challenges, and talent initiatives"
-              />
-
-              <InsightSection 
-                title="Operational Challenges" 
-                icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
-                insights={analysisData.operationalChallenges}
-                description="Compliance, technology, and efficiency initiatives"
-              />
-
-              <InsightSection 
-                title="Strategic People Initiatives" 
-                icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
-                insights={analysisData.strategicPeopleInitiatives}
-                description="ESG, remote work, learning, and culture initiatives"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
     </div>
   );
