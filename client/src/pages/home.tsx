@@ -13,8 +13,8 @@ export default function Home() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl font-bold text-slate-800 mb-4">Your ACES for every Discovery Call</h2>
             <p className="text-xl text-slate-600 mb-6">
-              Upload company annual reports and get AI-powered insights to prepare winning discovery conversations. 
-              Identify key business challenges, growth opportunities, and strategic priorities in minutes.
+              Turn intimidating annual reports into your secret weapon with the ACES playbook. 
+              Get AI-powered insights that reveal key business challenges, growth opportunities, and strategic priorities in minutes.
             </p>
             <div className="flex justify-center space-x-8 text-sm text-slate-500">
               <div className="flex items-center">
@@ -27,7 +27,7 @@ export default function Home() {
               </div>
               <div className="flex items-center">
                 <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-                <span>Actionable Insights</span>
+                <span>Trusted Advisor Mode</span>
               </div>
             </div>
           </div>
