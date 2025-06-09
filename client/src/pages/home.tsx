@@ -1,4 +1,4 @@
-import { Clock, Shield, TrendingUp } from "lucide-react";
+import { Target, Zap, Lightbulb, TrendingUp } from "lucide-react";
 import Header from "@/components/header";
 import FileUpload from "@/components/file-upload";
 import UploadHistory from "@/components/upload-history";
@@ -13,21 +13,20 @@ export default function Home() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl font-bold text-slate-800 mb-4">Your ACES for every Discovery Call</h2>
             <p className="text-xl text-slate-600 mb-6">
-              Turn intimidating annual reports into your secret weapon with the ACES playbook. 
-              Get AI-powered insights that reveal key business challenges, growth opportunities, and strategic priorities in minutes.
+              Turn intimidating annual reports into your secret weapon. Our AI finds the business gold buried in financial jargon, delivering your ACES playbook to Advocate with authority, Collaborate with context, Empathize with evidence, and Strategize with substance.
             </p>
             <div className="flex justify-center space-x-8 text-sm text-slate-500">
               <div className="flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-primary" />
-                <span>5min Analysis</span>
+                <Target className="w-5 h-5 mr-2 text-primary" />
+                <span><strong>ACES Intelligence</strong> - Framework-driven insights that matter</span>
               </div>
               <div className="flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-primary" />
-                <span>Secure Processing</span>
+                <Zap className="w-5 h-5 mr-2 text-primary" />
+                <span><strong>5-Minute Advantage</strong> - Faster than your pre-call coffee run</span>
               </div>
               <div className="flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-                <span>Trusted Advisor Mode</span>
+                <Lightbulb className="w-5 h-5 mr-2 text-primary" />
+                <span><strong>Trusted Advisor Mode</strong> - Show up knowing their world</span>
               </div>
             </div>
           </div>
