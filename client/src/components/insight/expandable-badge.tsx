@@ -48,17 +48,19 @@ export function ExpandableBadge({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge 
-                variant={variant} 
-                className={cn(
-                  "text-xs cursor-pointer hover:opacity-80 transition-opacity",
-                  "border-dashed border-2", // Visual indicator of expandability
-                  className
-                )}
-                onClick={handleBadgeClick}
-              >
-                {truncatedText}
-              </Badge>
+              <div>
+                <Badge 
+                  variant={variant} 
+                  className={cn(
+                    "text-xs cursor-pointer hover:opacity-80 transition-opacity",
+                    "border-dashed border-2", // Visual indicator of expandability
+                    className
+                  )}
+                  onClick={handleBadgeClick}
+                >
+                  {truncatedText}
+                </Badge>
+              </div>
             </TooltipTrigger>
             <TooltipContent className="max-w-sm p-3">
               <div className="space-y-2">
