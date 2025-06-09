@@ -1,14 +1,15 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, RefreshCw, DollarSign, TrendingDown, TrendingUp as TrendingUpIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import Header from "@/components/header";
 import { getUploadById, reanalyzeUpload } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
-import type { AnalysisData, HRInsight } from "@/types/upload";
+import type { AnalysisData, HRInsight, FinancialMetrics } from "@/types/upload";
 import { useToast } from "@/hooks/use-toast";
 import { ExpandableBadge } from "@/components/insight/expandable-badge";
 
@@ -17,6 +18,142 @@ interface InsightSectionProps {
   icon: React.ReactNode;
   insights: HRInsight[];
   description: string;
+}
+
+interface FinancialSummaryProps {
+  financialMetrics: FinancialMetrics;
+}
+
+function FinancialSummary({ financialMetrics }: FinancialSummaryProps) {
+  const formatCurrency = (amount: string | null, currency: string) => {
+    if (!amount) return "N/A";
+    const num = parseFloat(amount);
+    if (num >= 1000000000) {
+      return `${currency} ${(num / 1000000000).toFixed(1)}B`;
+    } else if (num >= 1000000) {
+      return `${currency} ${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${currency} ${(num / 1000).toFixed(1)}K`;
+    }
+    return `${currency} ${num.toLocaleString()}`;
+  };
+
+  const formatEmployees = (count: number | string | null) => {
+    if (!count) return "N/A";
+    const num = typeof count === 'string' ? parseFloat(count) : count;
+    return num.toLocaleString();
+  };
+
+  const calculateProfitMargin = () => {
+    const revenue = financialMetrics.revenue.current;
+    const profit = financialMetrics.profitLoss.amount;
+    
+    if (!revenue || !profit) return "N/A";
+    
+    const revenueNum = parseFloat(revenue);
+    const profitNum = parseFloat(profit);
+    
+    if (revenueNum === 0) return "N/A";
+    
+    const margin = (profitNum / revenueNum) * 100;
+    return `${margin.toFixed(1)}%`;
+  };
+
+  const getGrowthIndicator = (growth: string | null) => {
+    if (!growth) return null;
+    const growthNum = parseFloat(growth);
+    if (growthNum > 0) {
+      return <TrendingUpIcon className="w-4 h-4 text-green-600" />;
+    } else if (growthNum < 0) {
+      return <TrendingDown className="w-4 h-4 text-red-600" />;
+    }
+    return null;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <DollarSign className="w-5 h-5 mr-2 text-primary" />
+          Financial Summary
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Revenue */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-600">Revenue</span>
+              <Badge variant={financialMetrics.revenue.confidence === 'high' ? 'default' : 'secondary'}>
+                {financialMetrics.revenue.confidence}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-semibold">
+                {formatCurrency(financialMetrics.revenue.current, financialMetrics.revenue.currency)}
+              </span>
+              {financialMetrics.revenue.growth && getGrowthIndicator(financialMetrics.revenue.growth)}
+            </div>
+            {financialMetrics.revenue.growth && (
+              <span className="text-xs text-slate-500">
+                {parseFloat(financialMetrics.revenue.growth) > 0 ? '+' : ''}{(parseFloat(financialMetrics.revenue.growth) * 100).toFixed(1)}% YoY
+              </span>
+            )}
+          </div>
+
+          {/* Profit/Loss */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-600">
+                {financialMetrics.profitLoss.type === 'profit' ? 'Profit' : 'Loss'}
+              </span>
+              <Badge variant={financialMetrics.profitLoss.confidence === 'high' ? 'default' : 'secondary'}>
+                {financialMetrics.profitLoss.confidence}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className={`text-lg font-semibold ${
+                financialMetrics.profitLoss.type === 'profit' ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {formatCurrency(financialMetrics.profitLoss.amount, financialMetrics.revenue.currency)}
+              </span>
+            </div>
+          </div>
+
+          {/* Employees */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-600">Employees</span>
+              <Badge variant={financialMetrics.employees.confidence === 'high' ? 'default' : 'secondary'}>
+                {financialMetrics.employees.confidence}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-semibold">
+                {formatEmployees(financialMetrics.employees.total)}
+              </span>
+              {financialMetrics.employees.growth && getGrowthIndicator(financialMetrics.employees.growth)}
+            </div>
+            {financialMetrics.employees.growth && (
+              <span className="text-xs text-slate-500">
+                {parseFloat(financialMetrics.employees.growth) > 0 ? '+' : ''}{(parseFloat(financialMetrics.employees.growth) * 100).toFixed(1)}% YoY
+              </span>
+            )}
+          </div>
+
+          {/* Profit Margin */}
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-slate-600">Profit Margin</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-semibold">
+                {calculateProfitMargin()}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function InsightSection({ title, icon, insights, description }: InsightSectionProps) {
@@ -218,6 +355,11 @@ export default function Analysis() {
               <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
             </CardContent>
           </Card>
+
+          {/* Financial Summary */}
+          {analysisData.financialMetrics && (
+            <FinancialSummary financialMetrics={analysisData.financialMetrics} />
+          )}
 
           {/* HR Insights Sections */}
           <div className="grid gap-6">
