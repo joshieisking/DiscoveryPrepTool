@@ -81,15 +81,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const { analyzeDocumentWithGemini } = await import('./services/gemini');
           const analysisResult = await analyzeDocumentWithGemini(req.file!.path);
-          
-          // DEBUG: Log financial metrics extraction
-          console.log('Financial extraction debugging:', {
-            hasFinancialMetrics: !!analysisResult.financialMetrics,
-            revenue: analysisResult.financialMetrics?.revenue?.current,
-            profit: analysisResult.financialMetrics?.profitLoss?.amount,
-            employees: analysisResult.financialMetrics?.employees?.total,
-            currency: analysisResult.financialMetrics?.revenue?.currency
-          });
 
           const updatedUpload = await storage.updateUploadStatus(
             newUpload.id, 
@@ -97,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             JSON.stringify(analysisResult)
           );
           
-          console.log(`Upload ${newUpload.id} analysis completed successfully`);
+          console.log(`Upload ${newUpload.id} analysis completed:`, updatedUpload);
         } catch (error) {
           console.error(`Error processing upload ${newUpload.id}:`, error);
           await storage.updateUploadStatus(newUpload.id, "failed");
