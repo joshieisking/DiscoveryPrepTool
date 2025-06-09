@@ -24,18 +24,89 @@ interface FinancialSummaryProps {
   financialMetrics: FinancialMetrics;
 }
 
+interface MetricCardProps {
+  value: string;
+  label: string;
+  color: string;
+  source?: string;
+}
+
+function MetricCard({ value, label, color, source = "From annual report" }: MetricCardProps) {
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case 'blue': return 'text-blue-600';
+      case 'green': return 'text-green-600';
+      case 'orange': return 'text-orange-500';
+      case 'purple': return 'text-purple-600';
+      default: return 'text-slate-700';
+    }
+  };
+
+  return (
+    <Card className="p-6 text-center">
+      <div className={`text-4xl font-bold ${getColorClass(color)} mb-2`}>
+        {value}
+      </div>
+      <div className="text-lg font-semibold text-slate-800 mb-1">
+        {label}
+      </div>
+      <div className="text-sm text-slate-500">
+        {source}
+      </div>
+    </Card>
+  );
+}
+
+function RelatedInsights({ financialMetrics }: { financialMetrics: FinancialMetrics }) {
+  const insights = [
+    {
+      text: `Operating revenue: ${financialMetrics.revenue.sourceText}`,
+      fullText: financialMetrics.revenue.sourceText
+    },
+    {
+      text: `Total assets: ${financialMetrics.assets.total ? financialMetrics.assets.currency + ' ' + financialMetrics.assets.total : 'N/A'}; Employee count: ${financialMetrics.employees.sourceText}`,
+      fullText: `Assets: ${financialMetrics.assets.sourceText || 'Not specified'}. Employees: ${financialMetrics.employees.sourceText}`
+    },
+    {
+      text: `${financialMetrics.profitLoss.sourceText}`,
+      fullText: financialMetrics.profitLoss.sourceText
+    }
+  ].filter(insight => insight.fullText);
+
+  if (insights.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-lg font-semibold text-slate-800">
+        Related Insights ({insights.length})
+      </h3>
+      <div className="space-y-2">
+        {insights.map((insight, index) => (
+          <div
+            key={index}
+            className="text-slate-700 text-sm p-3 bg-slate-50 rounded-md cursor-pointer hover:bg-slate-100 transition-colors"
+            title={insight.fullText}
+          >
+            {insight.text.length > 80 ? `${insight.text.substring(0, 80)}...` : insight.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FinancialSummary({ financialMetrics }: FinancialSummaryProps) {
   const formatCurrency = (amount: string | null, currency: string) => {
     if (!amount) return "N/A";
     const num = parseFloat(amount);
     if (num >= 1000000000) {
-      return `${currency} ${(num / 1000000000).toFixed(1)}B`;
+      return `${currency}$${(num / 1000000000).toFixed(1)}B`;
     } else if (num >= 1000000) {
-      return `${currency} ${(num / 1000000).toFixed(1)}M`;
+      return `${currency}$${(num / 1000000).toFixed(1)}M`;
     } else if (num >= 1000) {
-      return `${currency} ${(num / 1000).toFixed(1)}K`;
+      return `${currency}$${(num / 1000).toFixed(1)}K`;
     }
-    return `${currency} ${num.toLocaleString()}`;
+    return `${currency}$${num.toLocaleString()}`;
   };
 
   const formatEmployees = (count: number | string | null) => {
@@ -59,100 +130,43 @@ function FinancialSummary({ financialMetrics }: FinancialSummaryProps) {
     return `${margin.toFixed(1)}%`;
   };
 
-  const getGrowthIndicator = (growth: string | null) => {
-    if (!growth) return null;
-    const growthNum = parseFloat(growth);
-    if (growthNum > 0) {
-      return <TrendingUpIcon className="w-4 h-4 text-green-600" />;
-    } else if (growthNum < 0) {
-      return <TrendingDown className="w-4 h-4 text-red-600" />;
-    }
-    return null;
-  };
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <DollarSign className="w-5 h-5 mr-2 text-primary" />
-          Financial Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Revenue */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-600">Revenue</span>
-              <Badge variant={financialMetrics.revenue.confidence === 'high' ? 'default' : 'secondary'}>
-                {financialMetrics.revenue.confidence}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-semibold">
-                {formatCurrency(financialMetrics.revenue.current, financialMetrics.revenue.currency)}
-              </span>
-              {financialMetrics.revenue.growth && getGrowthIndicator(financialMetrics.revenue.growth)}
-            </div>
-            {financialMetrics.revenue.growth && (
-              <span className="text-xs text-slate-500">
-                {parseFloat(financialMetrics.revenue.growth) > 0 ? '+' : ''}{(parseFloat(financialMetrics.revenue.growth) * 100).toFixed(1)}% YoY
-              </span>
-            )}
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Financial Key Metrics</h2>
+        <p className="text-slate-600">
+          Key financial indicators extracted from the annual report ({financialMetrics.revenue.currency})
+        </p>
+      </div>
 
-          {/* Profit/Loss */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-600">
-                {financialMetrics.profitLoss.type === 'profit' ? 'Profit' : 'Loss'}
-              </span>
-              <Badge variant={financialMetrics.profitLoss.confidence === 'high' ? 'default' : 'secondary'}>
-                {financialMetrics.profitLoss.confidence}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`text-lg font-semibold ${
-                financialMetrics.profitLoss.type === 'profit' ? 'text-green-700' : 'text-red-700'
-              }`}>
-                {formatCurrency(financialMetrics.profitLoss.amount, financialMetrics.revenue.currency)}
-              </span>
-            </div>
-          </div>
+      {/* 2x2 Metrics Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <MetricCard
+          value={formatCurrency(financialMetrics.revenue.current, financialMetrics.revenue.currency)}
+          label="Total Revenue"
+          color="blue"
+        />
+        <MetricCard
+          value={formatCurrency(financialMetrics.profitLoss.amount, financialMetrics.revenue.currency)}
+          label={financialMetrics.profitLoss.type === 'profit' ? 'Net Profit' : 'Net Loss'}
+          color="green"
+        />
+        <MetricCard
+          value={formatEmployees(financialMetrics.employees.total)}
+          label="Total Employees"
+          color="orange"
+        />
+        <MetricCard
+          value={calculateProfitMargin()}
+          label="Profit Margin"
+          color="purple"
+        />
+      </div>
 
-          {/* Employees */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-600">Employees</span>
-              <Badge variant={financialMetrics.employees.confidence === 'high' ? 'default' : 'secondary'}>
-                {financialMetrics.employees.confidence}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-semibold">
-                {formatEmployees(financialMetrics.employees.total)}
-              </span>
-              {financialMetrics.employees.growth && getGrowthIndicator(financialMetrics.employees.growth)}
-            </div>
-            {financialMetrics.employees.growth && (
-              <span className="text-xs text-slate-500">
-                {parseFloat(financialMetrics.employees.growth) > 0 ? '+' : ''}{(parseFloat(financialMetrics.employees.growth) * 100).toFixed(1)}% YoY
-              </span>
-            )}
-          </div>
-
-          {/* Profit Margin */}
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-slate-600">Profit Margin</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-semibold">
-                {calculateProfitMargin()}
-              </span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Related Insights */}
+      <RelatedInsights financialMetrics={financialMetrics} />
+    </div>
   );
 }
 
