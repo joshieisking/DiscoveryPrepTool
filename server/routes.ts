@@ -79,8 +79,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log(`Processing upload ${newUpload.id}...`);
           
-          const { analyzeDocumentWithGemini } = await import('./services/gemini');
-          const analysisResult = await analyzeDocumentWithGemini(req.file!.path);
+          const { analyzeDocumentPipeline } = await import('./services/analysis-pipeline');
+          const { transformPipelineResultToAnalysisData, validateAnalysisData } = await import('./services/data-transformer');
+          
+          const pipelineResult = await analyzeDocumentPipeline(req.file!.path);
+          const analysisResult = transformPipelineResultToAnalysisData(pipelineResult);
+          
+          // Validate the transformed data
+          if (!validateAnalysisData(analysisResult)) {
+            console.warn(`Upload ${newUpload.id}: Analysis data validation failed, using fallback`);
+          }
 
           const updatedUpload = await storage.updateUploadStatus(
             newUpload.id, 
@@ -139,7 +147,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setTimeout(async () => {
         try {
           console.log(`Reprocessing upload ${id}...`);
-          const analysisResult = await analyzeDocumentWithGemini(upload.filePath!);
+          const { analyzeDocumentPipeline } = await import('./services/analysis-pipeline');
+          const { transformPipelineResultToAnalysisData, validateAnalysisData } = await import('./services/data-transformer');
+          
+          const pipelineResult = await analyzeDocumentPipeline(upload.filePath!);
+          const analysisResult = transformPipelineResultToAnalysisData(pipelineResult);
+          
+          // Validate the transformed data
+          if (!validateAnalysisData(analysisResult)) {
+            console.warn(`Reanalysis ${id}: Analysis data validation failed, using fallback`);
+          }
+          
           const analysisData = JSON.stringify(analysisResult);
           
           await storage.updateUploadStatus(id, 'completed', analysisData);
