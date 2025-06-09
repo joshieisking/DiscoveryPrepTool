@@ -77,11 +77,31 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
 export default function Analysis() {
   const { id } = useParams();
   const [viewMode, setViewMode] = useState<ViewMode>('combined');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: upload, isLoading, error } = useQuery({
     queryKey: ['/api/uploads', id],
     queryFn: () => getUploadById(parseInt(id!)),
     enabled: !!id,
+  });
+
+  const reanalyzeMutation = useMutation({
+    mutationFn: () => reanalyzeUpload(parseInt(id!)),
+    onSuccess: () => {
+      toast({
+        title: "Re-analysis Started",
+        description: "The document is being re-analyzed with updated prompts.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/uploads', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Re-analysis Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const analysisData: AnalysisData | null = upload?.analysisData 
@@ -182,6 +202,17 @@ export default function Analysis() {
                   Analyzed {formatUploadTime(upload.uploadTime)} • {formatFileSize(upload.fileSize)}
                 </p>
               </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => reanalyzeMutation.mutate()}
+                disabled={reanalyzeMutation.isPending || upload.status === 'processing'}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${reanalyzeMutation.isPending ? 'animate-spin' : ''}`} />
+                <span>{reanalyzeMutation.isPending ? 'Re-analyzing...' : 'Re-analyze'}</span>
+              </Button>
             </div>
           </div>
         </div>
