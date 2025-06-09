@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, BarChart3, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/header";
 import { getUploadById, reanalyzeUpload } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
-import VisualizationControls, { type ViewMode } from "@/components/visualization/visualization-controls";
+import VisualizationControls from "@/components/visualization/visualization-controls";
 import type { AnalysisData, HRInsight } from "@/types/upload";
 import { useToast } from "@/hooks/use-toast";
 import { ExpandableBadge } from "@/components/insight/expandable-badge";
@@ -67,7 +66,6 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
 
 export default function Analysis() {
   const { id } = useParams();
-  const [viewMode, setViewMode] = useState<ViewMode>('combined');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
