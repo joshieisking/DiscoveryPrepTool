@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// Keep your existing FinancialMetrics interface exactly as-is
 export interface FinancialMetrics {
   revenue: {
     current: string | null;
@@ -44,58 +45,34 @@ export interface FinancialMetrics {
   };
 }
 
-const RELIABLE_FINANCIAL_EXTRACTION_PROMPT = `You are a financial data extraction specialist. Extract financial metrics from annual reports with absolute precision and consistency.
+// REPLACE your existing RELIABLE_FINANCIAL_EXTRACTION_PROMPT with this:
+const RELIABLE_FINANCIAL_EXTRACTION_PROMPT = `Extract key financial metrics from this document. Return valid JSON only.
 
-**MANDATORY OUTPUT FORMAT:**
-All monetary values must be in base units (e.g., 2610000000, not "2.61B").
-All percentages as decimals without % symbol (e.g., 0.15 for 15%).
-Employee counts as integers only.
+RULES:
+- All amounts in base units (2610000000, not "2.61B")  
+- Use null for missing data
+- Include exact quotes in sourceText
+- Currency should be 3-letter code (USD, CAD, etc.)
 
-**REVENUE EXTRACTION:**
-- Primary sources: "Total revenue", "Net revenue", "Consolidated revenue"
-- Secondary sources: "Net sales", "Total sales"
-- Extract current year amount in base currency units
-- If previous year available, extract that too
-- Calculate growth rate as decimal (0.15 = 15% growth)
-
-**PROFIT/LOSS EXTRACTION:**
-- Look for: "Net income", "Net loss", "GAAP net income/loss"
-- Use positive numbers for profit, negative for loss
-- Extract amount in base currency units
-- Avoid non-GAAP or adjusted figures unless GAAP unavailable
-
-**EMPLOYEE COUNT:**
-- Sources: "Total employees", "Full-time employees", "Workforce"
-- Extract as integer (no commas, no formatting)
-- Prefer end-of-period counts
-
-**ASSET EXTRACTION:**
-- Source: "Total assets" from balance sheet
-- Extract in base currency units
-
-**CONFIDENCE RULES:**
-- HIGH: Direct statement with exact figures ("Revenue was $2,610,000,000")
-- MEDIUM: Requires calculation ("Revenue grew 15% to $2.61 billion")
-- LOW: Narrative or unclear ("Revenue increased significantly")
-
-**REQUIRED JSON - NO DEVIATIONS:**
+REQUIRED FORMAT:
 {
-  "financialMetrics": {
+  "success": true,
+  "data": {
     "revenue": {
       "current": "2610000000",
-      "previous": "2263000000", 
-      "growth": "0.15",
+      "previous": null,
+      "growth": null,
       "currency": "USD",
       "confidence": "high",
-      "sourceText": "Total revenue was $2.610 billion, an increase of 15% year-over-year.",
+      "sourceText": "Revenue was $2.61 billion",
       "extractionMethod": "direct_statement"
     },
     "profitLoss": {
       "type": "profit",
       "amount": "28000000",
-      "margin": "0.011",
-      "confidence": "high", 
-      "sourceText": "GAAP net income was $28 million",
+      "margin": null,
+      "confidence": "high",
+      "sourceText": "Net income of $28 million",
       "validationFlags": []
     },
     "employees": {
@@ -103,34 +80,100 @@ Employee counts as integers only.
       "previousYear": null,
       "growth": null,
       "confidence": "high",
-      "sourceText": "As of January 31, 2025, we had 5,914 employees"
+      "sourceText": "5,914 employees as of year-end"
     },
     "assets": {
       "total": "9437000000",
-      "currency": "USD", 
+      "currency": "USD",
       "confidence": "high",
-      "sourceText": "Total assets $9,437 million"
+      "sourceText": "Total assets of $9.4 billion"
     },
     "validation": {
       "revenueReasonable": true,
       "profitMarginReasonable": true,
       "crossCheckPassed": true,
       "flaggedForReview": false,
-      "notes": "All metrics extracted successfully with high confidence",
+      "notes": "Successfully extracted core metrics",
       "extractionMethod": "direct_statement"
     }
   }
 }
 
-**CRITICAL RULES:**
-1. Numbers ONLY in base units - no "B", "M", "K" suffixes
-2. Exact sourceText quotes from document
-3. Use null for missing data, never estimate
-4. extractionMethod must be: "direct_statement", "calculated", or "narrative_based"
-5. Confidence based on source clarity, not complexity
+Extract financial data now:`;
 
-Extract with absolute precision. No approximations.`;
+// ADD these new helper functions before your main function:
+function parseFinancialResponse(text: string): FinancialMetrics {
+  const fullJsonMatch = text.match(/\{[\s\S]*\}/);
+  if (fullJsonMatch) {
+    try {
+      const parsed = JSON.parse(fullJsonMatch[0]);
 
+      // Handle new format with success wrapper
+      if (parsed.success && parsed.data) {
+        return parsed.data as FinancialMetrics;
+      }
+
+      // Handle legacy format (your current structure)
+      if (parsed.financialMetrics) {
+        return parsed.financialMetrics as FinancialMetrics;
+      }
+
+      // Handle direct format
+      if (parsed.revenue || parsed.profitLoss) {
+        return parsed as FinancialMetrics;
+      }
+    } catch (parseError) {
+      console.warn("Primary JSON parsing failed, trying fallbacks");
+    }
+  }
+
+  return createFailsafeMetrics("JSON parsing failed");
+}
+
+function createFailsafeMetrics(errorMessage: string): FinancialMetrics {
+  return {
+    revenue: {
+      current: null,
+      previous: null,
+      growth: null,
+      currency: "USD",
+      confidence: "low",
+      sourceText: "Extraction failed",
+      extractionMethod: "calculated",
+    },
+    profitLoss: {
+      type: "profit",
+      amount: null,
+      margin: null,
+      confidence: "low",
+      sourceText: "Extraction failed",
+      validationFlags: ["system_error"],
+    },
+    employees: {
+      total: null,
+      previousYear: null,
+      growth: null,
+      confidence: "low",
+      sourceText: "Extraction failed",
+    },
+    assets: {
+      total: null,
+      currency: "USD",
+      confidence: "low",
+      sourceText: "Extraction failed",
+    },
+    validation: {
+      revenueReasonable: false,
+      profitMarginReasonable: false,
+      crossCheckPassed: false,
+      flaggedForReview: true,
+      notes: `System error: ${errorMessage}`,
+      extractionMethod: "calculated",
+    },
+  };
+}
+
+// REPLACE your existing extractFinancialMetrics function with this:
 export async function extractFinancialMetrics(
   filePath: string,
 ): Promise<FinancialMetrics> {
@@ -138,8 +181,9 @@ export async function extractFinancialMetrics(
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: {
-        temperature: 0.1, // Lower temperature for more consistent extraction
+        temperature: 0.1,
         topP: 0.8,
+        maxOutputTokens: 2048, // Added limit for consistency
       },
     });
 
@@ -163,47 +207,10 @@ export async function extractFinancialMetrics(
     const response = await result.response;
     const text = response.text();
 
-    // Enhanced JSON extraction with better error handling
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error(
-        "No JSON found in financial extraction response:",
-        text.substring(0, 500),
-      );
-      throw new Error("No JSON found in financial extraction response");
-    }
+    // Use new robust parsing instead of your existing JSON extraction
+    const financialMetrics = parseFinancialResponse(text);
 
-    let financialData;
-    try {
-      financialData = JSON.parse(jsonMatch[0]);
-    } catch (parseError) {
-      console.error("JSON parsing failed:", parseError);
-      console.error("Raw JSON string:", jsonMatch[0].substring(0, 500));
-      throw new Error("Invalid JSON in financial extraction response");
-    }
-
-    // Extract the nested financialMetrics object
-    const financialMetrics = financialData.financialMetrics;
-
-    // Enhanced validation with detailed error reporting
-    if (!financialMetrics || typeof financialMetrics !== "object") {
-      throw new Error("Missing or invalid financialMetrics structure");
-    }
-
-    const requiredFields = [
-      "revenue",
-      "profitLoss",
-      "employees",
-      "assets",
-      "validation",
-    ];
-    for (const field of requiredFields) {
-      if (!financialMetrics[field]) {
-        console.warn(`Missing required field: ${field}`);
-      }
-    }
-
-    // Business logic validation
+    // Keep your existing validation concept but improve it
     if (
       financialMetrics.validation &&
       !financialMetrics.validation.crossCheckPassed
@@ -214,11 +221,13 @@ export async function extractFinancialMetrics(
       );
     }
 
-    return financialMetrics as FinancialMetrics;
+    return financialMetrics;
   } catch (error) {
     console.error("Financial extraction failed:", error);
-    throw new Error(
-      `Failed to extract financial metrics: ${error instanceof Error ? error.message : "Unknown error"}`,
+
+    // Instead of throwing, return meaningful defaults
+    return createFailsafeMetrics(
+      error instanceof Error ? error.message : "Unknown error",
     );
   }
 }
