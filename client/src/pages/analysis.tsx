@@ -1,16 +1,26 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  TrendingUp,
+  Users,
+  AlertTriangle,
+  Target,
+  Building,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/header";
 import { getUploadById, reanalyzeUpload } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
 import VisualizationControls from "@/components/visualization/visualization-controls";
-import type { AnalysisData, HRInsight } from "@/types/upload";
+import type { AnalysisData, HRInsight, BusinessOverview } from "@/types/upload";
 import { useToast } from "@/hooks/use-toast";
 import { ExpandableBadge } from "@/components/insight/expandable-badge";
 
@@ -21,7 +31,12 @@ interface InsightSectionProps {
   description: string;
 }
 
-function InsightSection({ title, icon, insights, description }: InsightSectionProps) {
+function InsightSection({
+  title,
+  icon,
+  insights,
+  description,
+}: InsightSectionProps) {
   if (!insights || insights.length === 0) {
     return (
       <Card>
@@ -33,7 +48,9 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
           <p className="text-sm text-slate-600">{description}</p>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-500 italic">No specific insights found in this category.</p>
+          <p className="text-slate-500 italic">
+            No specific insights found in this category.
+          </p>
         </CardContent>
       </Card>
     );
@@ -64,13 +81,120 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
   );
 }
 
+function BusinessOverviewSection({
+  businessOverview,
+}: {
+  businessOverview: BusinessOverview;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Building className="w-5 h-5 mr-2 text-primary" />
+          Business Overview
+        </CardTitle>
+        <p className="text-sm text-slate-600">
+          Core business model and market position
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <h4 className="font-medium text-slate-900 mb-2">Company Overview</h4>
+          <p className="text-slate-700">{businessOverview.companyOverview}</p>
+        </div>
+
+        <div>
+          <h4 className="font-medium text-slate-900 mb-2">Business Model</h4>
+          <p className="text-slate-700">{businessOverview.businessModel}</p>
+        </div>
+
+        {businessOverview.revenueStreams.length > 0 && (
+          <div>
+            <h4 className="font-medium text-slate-900 mb-2">Revenue Streams</h4>
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              {businessOverview.revenueStreams.map((stream, index) => (
+                <li key={index}>{stream}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {businessOverview.keyMetrics.length > 0 && (
+          <div>
+            <h4 className="font-medium text-slate-900 mb-2">
+              Key Business Metrics
+            </h4>
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              {businessOverview.keyMetrics.map((metric, index) => (
+                <li key={index}>{metric}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {businessOverview.operationalChallenges.length > 0 && (
+          <div>
+            <h4 className="font-medium text-slate-900 mb-2">
+              Key Operational Challenges
+            </h4>
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              {businessOverview.operationalChallenges.map(
+                (challenge, index) => (
+                  <li key={index}>{challenge}</li>
+                ),
+              )}
+            </ul>
+          </div>
+        )}
+
+        <div>
+          <h4 className="font-medium text-slate-900 mb-2">
+            HR/Payroll Relevance
+          </h4>
+          <p className="text-slate-700 bg-blue-50 p-3 rounded-md">
+            {businessOverview.hrPayrollRelevance}
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-medium text-slate-900 mb-2">
+            Competitive Position
+          </h4>
+          <p className="text-slate-700">
+            {businessOverview.competitivePosition}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t">
+          <Badge variant="outline">
+            {businessOverview.industryClassification}
+          </Badge>
+          <Badge
+            variant={
+              businessOverview.extractionQuality.confidence === "high"
+                ? "default"
+                : "secondary"
+            }
+          >
+            {businessOverview.extractionQuality.confidence} confidence
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Analysis() {
   const { id } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const { data: upload, isLoading, error } = useQuery({
-    queryKey: ['/api/uploads', id],
+
+  const {
+    data: upload,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["/api/uploads", id],
     queryFn: () => getUploadById(parseInt(id!)),
     enabled: !!id,
   });
@@ -82,7 +206,7 @@ export default function Analysis() {
         title: "Re-analysis Started",
         description: "The document is being re-analyzed with updated prompts.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/uploads', id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/uploads", id] });
     },
     onError: (error) => {
       toast({
@@ -93,8 +217,8 @@ export default function Analysis() {
     },
   });
 
-  const analysisData: AnalysisData | null = upload?.analysisData 
-    ? JSON.parse(upload.analysisData) 
+  const analysisData: AnalysisData | null = upload?.analysisData
+    ? JSON.parse(upload.analysisData)
     : null;
 
   if (isLoading) {
@@ -121,9 +245,12 @@ export default function Analysis() {
             <CardContent className="pt-6">
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Analysis Not Found</h3>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  Analysis Not Found
+                </h3>
                 <p className="text-slate-600 mb-4">
-                  The requested analysis could not be found or is not yet available.
+                  The requested analysis could not be found or is not yet
+                  available.
                 </p>
                 <Link href="/">
                   <Button>
@@ -139,7 +266,7 @@ export default function Analysis() {
     );
   }
 
-  if (upload.status !== 'completed' || !analysisData) {
+  if (upload.status !== "completed" || !analysisData) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Header />
@@ -148,9 +275,12 @@ export default function Analysis() {
             <CardContent className="pt-6">
               <div className="text-center py-12">
                 <div className="animate-spin w-12 h-12 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Analysis In Progress</h3>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  Analysis In Progress
+                </h3>
                 <p className="text-slate-600 mb-4">
-                  Your file is being processed. This usually takes a few minutes.
+                  Your file is being processed. This usually takes a few
+                  minutes.
                 </p>
                 <Link href="/">
                   <Button variant="outline">
@@ -169,7 +299,7 @@ export default function Analysis() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -179,28 +309,39 @@ export default function Analysis() {
               Back to Dashboard
             </Button>
           </Link>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                 <FileText className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">{upload.fileName}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  {upload.fileName}
+                </h1>
                 <p className="text-slate-600">
-                  Analyzed {formatUploadTime(upload.uploadTime)} • {formatFileSize(upload.fileSize)}
+                  Analyzed {formatUploadTime(upload.uploadTime)} •{" "}
+                  {formatFileSize(upload.fileSize)}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => reanalyzeMutation.mutate()}
-                disabled={reanalyzeMutation.isPending || upload.status === 'processing'}
+                disabled={
+                  reanalyzeMutation.isPending || upload.status === "processing"
+                }
                 variant="outline"
                 className="flex items-center space-x-2"
               >
-                <RefreshCw className={`w-4 h-4 ${reanalyzeMutation.isPending ? 'animate-spin' : ''}`} />
-                <span>{reanalyzeMutation.isPending ? 'Re-analyzing...' : 'Re-analyze'}</span>
+                <RefreshCw
+                  className={`w-4 h-4 ${reanalyzeMutation.isPending ? "animate-spin" : ""}`}
+                />
+                <span>
+                  {reanalyzeMutation.isPending
+                    ? "Re-analyzing..."
+                    : "Re-analyze"}
+                </span>
               </Button>
             </div>
           </div>
@@ -217,12 +358,21 @@ export default function Analysis() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-700 leading-relaxed mb-6">{analysisData.summary}</p>
+              <p className="text-slate-700 leading-relaxed mb-6">
+                {analysisData.summary}
+              </p>
             </CardContent>
           </Card>
 
+          {/* Business Overview */}
+          {analysisData.businessOverview && (
+            <BusinessOverviewSection
+              businessOverview={analysisData.businessOverview}
+            />
+          )}
+
           {/* Financial Key Metrics */}
-          <VisualizationControls 
+          <VisualizationControls
             analysisData={analysisData}
             fileName={upload.fileName}
             defaultView="financial"
@@ -230,29 +380,29 @@ export default function Analysis() {
 
           {/* HR Insights */}
           <div className="grid gap-6">
-            <InsightSection 
-              title="Business Context" 
+            <InsightSection
+              title="Business Context"
               icon={<Building className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.businessContext}
               description="Revenue, expansion, and strategic priorities"
             />
 
-            <InsightSection 
-              title="Workforce Insights" 
+            <InsightSection
+              title="Workforce Insights"
               icon={<Users className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.workforceInsights}
               description="Employee data, hiring challenges, and talent initiatives"
             />
 
-            <InsightSection 
-              title="Operational Challenges" 
+            <InsightSection
+              title="Operational Challenges"
               icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.operationalChallenges}
               description="Compliance, technology, and efficiency initiatives"
             />
 
-            <InsightSection 
-              title="Strategic People Initiatives" 
+            <InsightSection
+              title="Strategic People Initiatives"
               icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.strategicPeopleInitiatives}
               description="ESG, remote work, learning, and culture initiatives"

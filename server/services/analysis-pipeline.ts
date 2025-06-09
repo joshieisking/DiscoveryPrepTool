@@ -3,23 +3,31 @@ import {
   FinancialMetrics,
 } from "./financial-extractor";
 import { generateHRInsights, HRInsights } from "./hr-analyzer";
+import {
+  extractBusinessOverview,
+  BusinessOverview,
+} from "./business-overview-extractor";
 
 export interface PipelineResult {
+  businessOverview: BusinessOverview;
   financialMetrics: FinancialMetrics;
   hrInsights: HRInsights;
   processingStats: {
+    stage0Duration: number;
     stage1Duration: number;
     stage2Duration: number;
     totalDuration: number;
+    stage0Success: boolean;
     stage1Success: boolean;
     stage2Success: boolean;
   };
 }
 
 export interface PipelineError {
-  stage: "financial" | "hr" | "pipeline";
+  stage: "business_overview" | "financial" | "hr" | "pipeline";
   error: string;
   partialData?: {
+    businessOverview?: BusinessOverview;
     financialMetrics?: FinancialMetrics;
     hrInsights?: Partial<HRInsights>;
   };
@@ -29,13 +37,31 @@ export async function analyzeDocumentPipeline(
   filePath: string,
 ): Promise<PipelineResult> {
   const startTime = Date.now();
+  let stage0Duration = 0;
   let stage1Duration = 0;
   let stage2Duration = 0;
+  let stage0Success = false;
   let stage1Success = false;
   let stage2Success = false;
 
   try {
-    console.log("Starting enhanced two-stage analysis pipeline...");
+    console.log("Starting enhanced three-stage analysis pipeline...");
+
+    // Stage 0: Business Overview Extraction
+    console.log("Stage 0: Extracting business overview...");
+    const stage0Start = Date.now();
+
+    const businessOverview = await extractBusinessOverview(filePath);
+
+    stage0Duration = Date.now() - stage0Start;
+    stage0Success = true;
+
+    console.log("Stage 0 completed successfully:", {
+      duration: stage0Duration,
+      industry: businessOverview.industryClassification,
+      confidence: businessOverview.extractionQuality.confidence,
+      revenueStreams: businessOverview.revenueStreams.length,
+    });
 
     // Stage 1: Financial Metrics Extraction
     console.log("Stage 1: Extracting financial metrics...");
@@ -64,10 +90,16 @@ export async function analyzeDocumentPipeline(
     }
 
     // Stage 2: HR Insights Generation
-    console.log("Stage 2: Generating HR insights with financial context...");
+    console.log(
+      "Stage 2: Generating HR insights with business and financial context...",
+    );
     const stage2Start = Date.now();
 
-    const hrInsights = await generateHRInsights(filePath, financialMetrics);
+    const hrInsights = await generateHRInsights(
+      filePath,
+      financialMetrics,
+      businessOverview,
+    );
 
     stage2Duration = Date.now() - stage2Start;
     stage2Success = true;
@@ -82,16 +114,23 @@ export async function analyzeDocumentPipeline(
     const totalDuration = Date.now() - startTime;
 
     // Final validation and quality check
-    const qualityScore = calculateQualityScore(financialMetrics, hrInsights);
+    const qualityScore = calculateQualityScore(
+      businessOverview,
+      financialMetrics,
+      hrInsights,
+    );
     console.log("Pipeline completed with quality score:", qualityScore);
 
     return {
+      businessOverview,
       financialMetrics,
       hrInsights,
       processingStats: {
+        stage0Duration,
         stage1Duration,
         stage2Duration,
         totalDuration,
+        stage0Success,
         stage1Success,
         stage2Success,
       },
@@ -101,15 +140,21 @@ export async function analyzeDocumentPipeline(
 
     console.error("Pipeline failed:", {
       error: error instanceof Error ? error.message : String(error),
+      stage0Success,
       stage1Success,
       stage2Success,
+      stage0Duration,
       stage1Duration,
       stage2Duration,
       totalDuration,
     });
 
     // Determine which stage failed and provide context
-    const stage = stage1Success ? "hr" : "financial";
+    const stage = stage0Success
+      ? stage1Success
+        ? "hr"
+        : "financial"
+      : "business_overview";
 
     throw new Error(
       `Analysis pipeline failed at ${stage} stage: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -118,10 +163,26 @@ export async function analyzeDocumentPipeline(
 }
 
 function calculateQualityScore(
+  businessOverview: BusinessOverview,
   financialMetrics: FinancialMetrics,
   hrInsights: HRInsights,
 ): number {
   let score = 0;
+
+  // Business overview quality (0-20 points)
+  if (
+    businessOverview.companyOverview &&
+    businessOverview.companyOverview !==
+      "Unable to extract company overview from document"
+  )
+    score += 5;
+  if (
+    businessOverview.businessModel &&
+    businessOverview.businessModel !== "Business model extraction failed"
+  )
+    score += 5;
+  if (businessOverview.revenueStreams.length > 0) score += 5;
+  if (businessOverview.extractionQuality.confidence === "high") score += 5;
 
   // Financial metrics quality (0-40 points)
   if (financialMetrics.revenue.current) score += 10;
@@ -130,22 +191,22 @@ function calculateQualityScore(
   if (financialMetrics.employees.total) score += 10;
   if (financialMetrics.validation.crossCheckPassed) score += 5;
 
-  // HR insights quality (0-60 points)
+  // HR insights quality (0-40 points)
   const totalInsights =
     hrInsights.businessContext.length +
     hrInsights.workforceInsights.length +
     hrInsights.operationalChallenges.length +
     hrInsights.strategicPeopleInitiatives.length;
 
-  score += Math.min(30, totalInsights * 2); // Up to 30 points for quantity
+  score += Math.min(20, totalInsights * 1.5); // Up to 20 points for quantity
 
-  if (hrInsights.extractionQuality.overallConfidence === "high") score += 20;
+  if (hrInsights.extractionQuality.overallConfidence === "high") score += 15;
   else if (hrInsights.extractionQuality.overallConfidence === "medium")
-    score += 10;
+    score += 8;
 
-  if (hrInsights.extractionQuality.dataCompleteness === "complete") score += 10;
+  if (hrInsights.extractionQuality.dataCompleteness === "complete") score += 5;
   else if (hrInsights.extractionQuality.dataCompleteness === "partial")
-    score += 5;
+    score += 3;
 
   return Math.min(100, score);
 }
@@ -159,19 +220,41 @@ export async function analyzeDocumentWithFallback(
   } catch (pipelineError) {
     console.warn("Enhanced pipeline failed, attempting recovery strategies...");
 
-    // Recovery Strategy 1: Try with relaxed financial extraction
+    // Recovery Strategy 1: Try with relaxed extraction for all stages
     try {
-      console.log("Attempting recovery with relaxed financial extraction...");
+      console.log("Attempting recovery with relaxed extraction...");
+
+      // Try to get at least business overview
+      let businessOverview: BusinessOverview;
+      try {
+        businessOverview = await extractBusinessOverview(filePath);
+      } catch (overviewError) {
+        console.warn(
+          "Business overview extraction failed in recovery, using defaults",
+        );
+        businessOverview = getDefaultBusinessOverview();
+      }
+
+      // Try relaxed financial extraction
       const partialFinancials = await extractFinancialMetricsRelaxed(filePath);
-      const hrInsights = await generateHRInsights(filePath, partialFinancials);
+
+      // Try HR insights with available context
+      const hrInsights = await generateHRInsights(
+        filePath,
+        partialFinancials,
+        businessOverview,
+      );
 
       return {
+        businessOverview,
         financialMetrics: partialFinancials,
         hrInsights,
         processingStats: {
+          stage0Duration: 0,
           stage1Duration: 0,
           stage2Duration: 0,
           totalDuration: 0,
+          stage0Success: true,
           stage1Success: true,
           stage2Success: true,
         },
@@ -183,6 +266,25 @@ export async function analyzeDocumentWithFallback(
       );
     }
   }
+}
+
+// Default business overview for fallback scenarios
+function getDefaultBusinessOverview(): BusinessOverview {
+  return {
+    companyOverview: "Unable to extract company overview from document",
+    businessModel: "Business model extraction failed",
+    revenueStreams: [],
+    keyMetrics: [],
+    operationalChallenges: [],
+    hrPayrollRelevance: "HR/Payroll relevance analysis unavailable",
+    industryClassification: "Unknown",
+    competitivePosition: "Competitive position analysis unavailable",
+    extractionQuality: {
+      confidence: "low",
+      completeness: "limited",
+      sourceQuality: "Fallback mode - business overview extraction failed",
+    },
+  };
 }
 
 // Fallback financial extraction with more lenient requirements

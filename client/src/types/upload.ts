@@ -2,7 +2,7 @@ export interface UploadFile {
   id: number;
   fileName: string;
   fileSize: number;
-  status: 'processing' | 'completed' | 'failed';
+  status: "processing" | "completed" | "failed";
   uploadTime: string;
   filePath?: string;
   analysisData?: string;
@@ -22,6 +22,22 @@ export interface HRInsight {
   confidence?: number;
   pageReference?: string;
   strategicImplications?: string;
+}
+
+export interface BusinessOverview {
+  companyOverview: string;
+  businessModel: string;
+  revenueStreams: string[];
+  keyMetrics: string[];
+  operationalChallenges: string[];
+  hrPayrollRelevance: string;
+  industryClassification: string;
+  competitivePosition: string;
+  extractionQuality: {
+    confidence: "high" | "medium" | "low";
+    completeness: "complete" | "partial" | "limited";
+    sourceQuality: string;
+  };
 }
 
 export interface FinancialMetrics {
@@ -67,6 +83,7 @@ export interface FinancialMetrics {
 
 export interface AnalysisData {
   summary: string;
+  businessOverview?: BusinessOverview;
   businessContext: HRInsight[];
   workforceInsights: HRInsight[];
   operationalChallenges: HRInsight[];
