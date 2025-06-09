@@ -238,29 +238,8 @@ export async function analyzeDocumentWithGemini(
         strategicPeopleInitiatives:
           pipelineResult.hrInsights.strategicPeopleInitiatives,
 
-        // Enhanced data
-        financialMetrics: {
-          revenue: {
-            current: pipelineResult.financialMetrics.revenue.current,
-            previous: pipelineResult.financialMetrics.revenue.previous,
-            growth: pipelineResult.financialMetrics.revenue.growth,
-            currency: pipelineResult.financialMetrics.revenue.currency,
-            confidence: pipelineResult.financialMetrics.revenue.confidence,
-          },
-          profitLoss: {
-            type: pipelineResult.financialMetrics.profitLoss.type,
-            amount: pipelineResult.financialMetrics.profitLoss.amount,
-            margin: pipelineResult.financialMetrics.profitLoss.margin,
-            confidence: pipelineResult.financialMetrics.profitLoss.confidence,
-          },
-          employees: {
-            total: pipelineResult.financialMetrics.employees.total,
-            previousYear:
-              pipelineResult.financialMetrics.employees.previousYear,
-            growth: pipelineResult.financialMetrics.employees.growth,
-            confidence: pipelineResult.financialMetrics.employees.confidence,
-          },
-        },
+        // Enhanced data - include complete structured financial metrics
+        financialMetrics: pipelineResult.financialMetrics,
         processingStats: {
           stage1Duration: pipelineResult.processingStats.stage1Duration,
           stage2Duration: pipelineResult.processingStats.stage2Duration,

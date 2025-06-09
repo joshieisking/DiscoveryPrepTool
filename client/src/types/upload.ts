@@ -24,10 +24,52 @@ export interface HRInsight {
   strategicImplications?: string;
 }
 
+export interface FinancialMetrics {
+  revenue: {
+    current: string | null;
+    previous: string | null;
+    growth: string | null;
+    currency: string;
+    confidence: "high" | "medium" | "low";
+    sourceText: string;
+    extractionMethod: "direct_statement" | "growth_narrative" | "calculated";
+  };
+  profitLoss: {
+    type: "profit" | "loss" | "breakeven";
+    amount: string | null;
+    margin: string | null;
+    confidence: "high" | "medium" | "low";
+    sourceText: string;
+    validationFlags: string[];
+  };
+  employees: {
+    total: number | null;
+    previousYear: number | null;
+    growth: string | null;
+    confidence: "high" | "medium" | "low";
+    sourceText: string;
+  };
+  assets: {
+    total: string | null;
+    currency: string;
+    confidence: "high" | "medium" | "low";
+    sourceText: string;
+  };
+  validation: {
+    revenueReasonable: boolean;
+    profitMarginReasonable: boolean;
+    crossCheckPassed: boolean;
+    flaggedForReview: boolean;
+    notes: string;
+    extractionMethod: string;
+  };
+}
+
 export interface AnalysisData {
   summary: string;
   businessContext: HRInsight[];
   workforceInsights: HRInsight[];
   operationalChallenges: HRInsight[];
   strategicPeopleInitiatives: HRInsight[];
+  financialMetrics?: FinancialMetrics;
 }

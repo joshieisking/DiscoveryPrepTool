@@ -1,4 +1,4 @@
-import type { HRInsight, AnalysisData } from "@/types/upload";
+import type { HRInsight, AnalysisData, FinancialMetrics } from "@/types/upload";
 
 export type ChartType = 
   | 'pie'
@@ -96,6 +96,100 @@ interface FinancialMatch {
   context: string;
   year?: string;
   confidence: 'high' | 'medium' | 'low';
+}
+
+// Smart financial data resolver that prefers structured data with text extraction fallback
+class FinancialDataResolver {
+  static getRevenue(analysisData: AnalysisData): number | null {
+    // Prefer structured data when available and reliable
+    if (analysisData.financialMetrics?.revenue?.current && 
+        analysisData.financialMetrics.revenue.confidence !== 'low') {
+      const value = this.parseFinancialValue(analysisData.financialMetrics.revenue.current);
+      if (value !== null) {
+        console.log('Using structured revenue data:', value);
+        return value;
+      }
+    }
+    
+    // Fallback to text extraction
+    console.log('Falling back to text extraction for revenue');
+    return FinancialDataExtractor.extractRevenue(analysisData);
+  }
+
+  static getEmployees(analysisData: AnalysisData): number | null {
+    // Prefer structured data when available and reliable
+    if (analysisData.financialMetrics?.employees?.total && 
+        analysisData.financialMetrics.employees.confidence !== 'low') {
+      console.log('Using structured employee data:', analysisData.financialMetrics.employees.total);
+      return analysisData.financialMetrics.employees.total;
+    }
+    
+    // Fallback to text extraction
+    console.log('Falling back to text extraction for employees');
+    return FinancialDataExtractor.extractEmployees(analysisData);
+  }
+
+  static getProfit(analysisData: AnalysisData): number | null {
+    // Prefer structured data when available and reliable
+    if (analysisData.financialMetrics?.profitLoss?.amount && 
+        analysisData.financialMetrics.profitLoss.confidence !== 'low') {
+      const value = this.parseFinancialValue(analysisData.financialMetrics.profitLoss.amount);
+      if (value !== null) {
+        console.log('Using structured profit data:', value);
+        return value;
+      }
+    }
+    
+    // Fallback to text extraction
+    console.log('Falling back to text extraction for profit');
+    return FinancialDataExtractor.extractProfit(analysisData);
+  }
+
+  static getAssets(analysisData: AnalysisData): number | null {
+    // Prefer structured data when available and reliable
+    if (analysisData.financialMetrics?.assets?.total && 
+        analysisData.financialMetrics.assets.confidence !== 'low') {
+      const value = this.parseFinancialValue(analysisData.financialMetrics.assets.total);
+      if (value !== null) {
+        console.log('Using structured assets data:', value);
+        return value;
+      }
+    }
+    
+    // Fallback to text extraction (if implemented)
+    console.log('No structured assets data available');
+    return null;
+  }
+
+  private static parseFinancialValue(value: string): number | null {
+    if (!value) return null;
+    
+    // Handle common financial formats
+    const cleanValue = value.replace(/[,$]/g, '').toLowerCase();
+    
+    // Extract number and scale
+    const match = cleanValue.match(/([\d.]+)\s*(million|billion|thousand|m|b|k)?/);
+    if (!match) return null;
+    
+    const number = parseFloat(match[1]);
+    const scale = match[2];
+    
+    if (isNaN(number)) return null;
+    
+    switch (scale) {
+      case 'billion':
+      case 'b':
+        return number * 1_000_000_000;
+      case 'million':
+      case 'm':
+        return number * 1_000_000;
+      case 'thousand':
+      case 'k':
+        return number * 1_000;
+      default:
+        return number;
+    }
+  }
 }
 
 class FinancialDataExtractor {
@@ -724,9 +818,9 @@ export const chartTemplates: ChartTemplate[] = [
     icon: 'DollarSign',
     generate: (analysisData: AnalysisData) => {
       const currency = FinancialDataExtractor.getExtractedCurrency(analysisData);
-      const revenue = FinancialDataExtractor.extractRevenue(analysisData);
-      let profit = FinancialDataExtractor.extractProfit(analysisData);
-      const employees = FinancialDataExtractor.extractEmployees(analysisData);
+      const revenue = FinancialDataResolver.getRevenue(analysisData);
+      let profit = FinancialDataResolver.getProfit(analysisData);
+      const employees = FinancialDataResolver.getEmployees(analysisData);
       
       // Financial validation: profit should not exceed revenue
       if (revenue && profit && profit > revenue) {
