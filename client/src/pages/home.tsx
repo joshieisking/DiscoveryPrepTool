@@ -11,9 +11,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="text-center mb-12">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold text-slate-800 mb-4">
-              Supercharge Your Discovery Calls
-            </h2>
+            <h2 className="text-4xl font-bold text-slate-800 mb-4">Your ACES for every Discovery Call</h2>
             <p className="text-xl text-slate-600 mb-6">
               Upload company annual reports and get AI-powered insights to prepare winning discovery conversations. 
               Identify key business challenges, growth opportunities, and strategic priorities in minutes.
