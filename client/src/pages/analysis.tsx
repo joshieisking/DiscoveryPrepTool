@@ -1,15 +1,17 @@
+import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, RefreshCw, DollarSign, TrendingDown, TrendingUp as TrendingUpIcon } from "lucide-react";
+import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, BarChart3, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/header";
 import { getUploadById, reanalyzeUpload } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
-import type { AnalysisData, HRInsight, FinancialMetrics } from "@/types/upload";
+import VisualizationControls, { type ViewMode } from "@/components/visualization/visualization-controls";
+import type { AnalysisData, HRInsight } from "@/types/upload";
 import { useToast } from "@/hooks/use-toast";
 import { ExpandableBadge } from "@/components/insight/expandable-badge";
 
@@ -18,156 +20,6 @@ interface InsightSectionProps {
   icon: React.ReactNode;
   insights: HRInsight[];
   description: string;
-}
-
-interface FinancialSummaryProps {
-  financialMetrics: FinancialMetrics;
-}
-
-interface MetricCardProps {
-  value: string;
-  label: string;
-  color: string;
-  source?: string;
-}
-
-function MetricCard({ value, label, color, source = "From annual report" }: MetricCardProps) {
-  const getColorClass = (color: string) => {
-    switch (color) {
-      case 'blue': return 'text-blue-600';
-      case 'green': return 'text-green-600';
-      case 'orange': return 'text-orange-500';
-      case 'purple': return 'text-purple-600';
-      default: return 'text-slate-700';
-    }
-  };
-
-  return (
-    <Card className="p-6 text-center">
-      <div className={`text-4xl font-bold ${getColorClass(color)} mb-2`}>
-        {value}
-      </div>
-      <div className="text-lg font-semibold text-slate-800 mb-1">
-        {label}
-      </div>
-      <div className="text-sm text-slate-500">
-        {source}
-      </div>
-    </Card>
-  );
-}
-
-function RelatedInsights({ financialMetrics }: { financialMetrics: FinancialMetrics }) {
-  const insights = [
-    {
-      text: `Operating revenue: ${financialMetrics.revenue.sourceText}`,
-      fullText: financialMetrics.revenue.sourceText
-    },
-    {
-      text: `Total assets: ${financialMetrics.assets.total ? financialMetrics.assets.currency + ' ' + financialMetrics.assets.total : 'N/A'}; Employee count: ${financialMetrics.employees.sourceText}`,
-      fullText: `Assets: ${financialMetrics.assets.sourceText || 'Not specified'}. Employees: ${financialMetrics.employees.sourceText}`
-    },
-    {
-      text: `${financialMetrics.profitLoss.sourceText}`,
-      fullText: financialMetrics.profitLoss.sourceText
-    }
-  ].filter(insight => insight.fullText);
-
-  if (insights.length === 0) return null;
-
-  return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-slate-800">
-        Related Insights ({insights.length})
-      </h3>
-      <div className="space-y-2">
-        {insights.map((insight, index) => (
-          <div
-            key={index}
-            className="text-slate-700 text-sm p-3 bg-slate-50 rounded-md cursor-pointer hover:bg-slate-100 transition-colors"
-            title={insight.fullText}
-          >
-            {insight.text.length > 80 ? `${insight.text.substring(0, 80)}...` : insight.text}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FinancialSummary({ financialMetrics }: FinancialSummaryProps) {
-  const formatCurrency = (amount: string | null, currency: string) => {
-    if (!amount) return "N/A";
-    const num = parseFloat(amount);
-    if (num >= 1000000000) {
-      return `${currency}$${(num / 1000000000).toFixed(1)}B`;
-    } else if (num >= 1000000) {
-      return `${currency}$${(num / 1000000).toFixed(1)}M`;
-    } else if (num >= 1000) {
-      return `${currency}$${(num / 1000).toFixed(1)}K`;
-    }
-    return `${currency}$${num.toLocaleString()}`;
-  };
-
-  const formatEmployees = (count: number | string | null) => {
-    if (!count) return "N/A";
-    const num = typeof count === 'string' ? parseFloat(count) : count;
-    return num.toLocaleString();
-  };
-
-  const calculateProfitMargin = () => {
-    const revenue = financialMetrics.revenue.current;
-    const profit = financialMetrics.profitLoss.amount;
-    
-    if (!revenue || !profit) return "N/A";
-    
-    const revenueNum = parseFloat(revenue);
-    const profitNum = parseFloat(profit);
-    
-    if (revenueNum === 0) return "N/A";
-    
-    const margin = (profitNum / revenueNum) * 100;
-    return `${margin.toFixed(1)}%`;
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Financial Key Metrics</h2>
-        <p className="text-slate-600">
-          Key financial indicators extracted from the annual report ({financialMetrics.revenue.currency})
-        </p>
-      </div>
-
-      {/* 2x2 Metrics Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <MetricCard
-          value={formatCurrency(financialMetrics.revenue.current, financialMetrics.revenue.currency)}
-          label="Total Revenue"
-          color="blue"
-        />
-        <MetricCard
-          value={formatCurrency(financialMetrics.profitLoss.amount, financialMetrics.revenue.currency)}
-          label={financialMetrics.profitLoss.type === 'profit' ? 'Net Profit' : 'Net Loss'}
-          color="green"
-        />
-        <MetricCard
-          value={formatEmployees(financialMetrics.employees.total)}
-          label="Total Employees"
-          color="orange"
-        />
-        <MetricCard
-          value={calculateProfitMargin()}
-          label="Profit Margin"
-          color="purple"
-        />
-      </div>
-
-      {/* Related Insights */}
-      <RelatedInsights financialMetrics={financialMetrics} />
-    </div>
-  );
 }
 
 function InsightSection({ title, icon, insights, description }: InsightSectionProps) {
@@ -215,6 +67,7 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
 
 export default function Analysis() {
   const { id } = useParams();
+  const [viewMode, setViewMode] = useState<ViewMode>('combined');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -319,7 +172,7 @@ export default function Analysis() {
     <div className="min-h-screen bg-slate-50">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <Link href="/">
@@ -344,7 +197,7 @@ export default function Analysis() {
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => reanalyzeMutation.mutate()}
-                disabled={reanalyzeMutation.isPending}
+                disabled={reanalyzeMutation.isPending || upload.status === 'processing'}
                 variant="outline"
                 className="flex items-center space-x-2"
               >
@@ -355,28 +208,39 @@ export default function Analysis() {
           </div>
         </div>
 
-        {/* Analysis Content */}
-        <div className="space-y-8">
-          {/* Executive Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Target className="w-5 h-5 mr-2 text-primary" />
-                Executive Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
-            </CardContent>
-          </Card>
+        {/* View Mode Tabs */}
+        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)} className="mb-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="text" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Text View
+            </TabsTrigger>
+            <TabsTrigger value="visual" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Visual View
+            </TabsTrigger>
+            <TabsTrigger value="combined" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Combined View
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Financial Summary */}
-          {analysisData.financialMetrics && (
-            <FinancialSummary financialMetrics={analysisData.financialMetrics} />
-          )}
+          {/* Text View */}
+          <TabsContent value="text" className="space-y-6">
+            {/* Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-primary" />
+                  Executive Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
+              </CardContent>
+            </Card>
 
-          {/* HR Insights Sections */}
-          <div className="grid gap-6">
+            {/* Business Context */}
             <InsightSection 
               title="Business Context" 
               icon={<Building className="w-5 h-5 mr-2 text-primary" />}
@@ -384,6 +248,7 @@ export default function Analysis() {
               description="Revenue, expansion, and strategic priorities"
             />
 
+            {/* Workforce Insights */}
             <InsightSection 
               title="Workforce Insights" 
               icon={<Users className="w-5 h-5 mr-2 text-primary" />}
@@ -391,6 +256,7 @@ export default function Analysis() {
               description="Employee data, hiring challenges, and talent initiatives"
             />
 
+            {/* Operational Challenges */}
             <InsightSection 
               title="Operational Challenges" 
               icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
@@ -398,14 +264,80 @@ export default function Analysis() {
               description="Compliance, technology, and efficiency initiatives"
             />
 
+            {/* Strategic People Initiatives */}
             <InsightSection 
               title="Strategic People Initiatives" 
               icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
               insights={analysisData.strategicPeopleInitiatives}
               description="ESG, remote work, learning, and culture initiatives"
             />
-          </div>
-        </div>
+          </TabsContent>
+
+          {/* Visual View */}
+          <TabsContent value="visual">
+            <VisualizationControls 
+              analysisData={analysisData}
+              fileName={upload.fileName}
+              defaultView="visual"
+              onViewModeChange={setViewMode}
+            />
+          </TabsContent>
+
+          {/* Combined View */}
+          <TabsContent value="combined" className="space-y-8">
+            {/* Executive Summary with Charts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-primary" />
+                  Executive Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-700 leading-relaxed mb-6">{analysisData.summary}</p>
+                
+                {/* Key Metrics Dashboard */}
+                <VisualizationControls 
+                  analysisData={analysisData}
+                  fileName={upload.fileName}
+                  defaultView="combined"
+                  onViewModeChange={setViewMode}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Text Insights with Expandable Details */}
+            <div className="grid gap-6">
+              <InsightSection 
+                title="Business Context" 
+                icon={<Building className="w-5 h-5 mr-2 text-primary" />}
+                insights={analysisData.businessContext}
+                description="Revenue, expansion, and strategic priorities"
+              />
+
+              <InsightSection 
+                title="Workforce Insights" 
+                icon={<Users className="w-5 h-5 mr-2 text-primary" />}
+                insights={analysisData.workforceInsights}
+                description="Employee data, hiring challenges, and talent initiatives"
+              />
+
+              <InsightSection 
+                title="Operational Challenges" 
+                icon={<AlertTriangle className="w-5 h-5 mr-2 text-primary" />}
+                insights={analysisData.operationalChallenges}
+                description="Compliance, technology, and efficiency initiatives"
+              />
+
+              <InsightSection 
+                title="Strategic People Initiatives" 
+                icon={<TrendingUp className="w-5 h-5 mr-2 text-primary" />}
+                insights={analysisData.strategicPeopleInitiatives}
+                description="ESG, remote work, learning, and culture initiatives"
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
