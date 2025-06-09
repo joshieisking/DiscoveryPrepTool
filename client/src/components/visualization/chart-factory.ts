@@ -164,10 +164,14 @@ class FinancialDataResolver {
   private static parseFinancialValue(value: string): number | null {
     if (!value) return null;
     
-    // Handle common financial formats
-    const cleanValue = value.replace(/[,$]/g, '').toLowerCase();
+    // Handle new base unit format (e.g., "2610000000")
+    const numericValue = parseFloat(value.replace(/[,$]/g, ''));
+    if (!isNaN(numericValue)) {
+      return numericValue;
+    }
     
-    // Extract number and scale
+    // Fallback for legacy formats with scale indicators
+    const cleanValue = value.replace(/[,$]/g, '').toLowerCase();
     const match = cleanValue.match(/([\d.]+)\s*(million|billion|thousand|m|b|k)?/);
     if (!match) return null;
     

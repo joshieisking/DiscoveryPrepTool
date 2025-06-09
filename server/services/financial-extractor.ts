@@ -44,111 +44,92 @@ export interface FinancialMetrics {
   };
 }
 
-const ENHANCED_FINANCIAL_EXTRACTION_PROMPT = `You are a financial data extraction specialist analyzing an annual report. Your job is to extract ALL financial metrics with extreme precision and validate them using business logic.
+const RELIABLE_FINANCIAL_EXTRACTION_PROMPT = `You are a financial data extraction specialist. Extract financial metrics from annual reports with absolute precision and consistency.
 
-**CRITICAL FINANCIAL EXTRACTION REQUIREMENTS:**
+**MANDATORY OUTPUT FORMAT:**
+All monetary values must be in base units (e.g., 2610000000, not "2.61B").
+All percentages as decimals without % symbol (e.g., 0.15 for 15%).
+Employee counts as integers only.
 
-**REVENUE EXTRACTION RULES:**
-- Look for: "revenue", "total revenue", "net revenue", "sales", "net sales", "total sales", "gross revenue"
-- Common formats: "Revenue: $4.2B", "revenue grew to $4.2 billion", "achieved revenue of $4.2B", "revenue increased 23% to $4.2B"
-- Extract BOTH current year and previous year when available
-- If only percentage growth given, extract the percentage and base amount separately
-- Handle fiscal year vs calendar year differences
-- Prioritize consolidated figures over segment breakdowns
+**REVENUE EXTRACTION:**
+- Primary sources: "Total revenue", "Net revenue", "Consolidated revenue"
+- Secondary sources: "Net sales", "Total sales"
+- Extract current year amount in base currency units
+- If previous year available, extract that too
+- Calculate growth rate as decimal (0.15 = 15% growth)
 
-**PROFIT/LOSS EXTRACTION RULES:**
-- PROFIT indicators: "net income", "profit", "operating income", "earnings", "net earnings", "income from operations"
-- LOSS indicators: "net loss", "operating loss", "loss", "deficit", "(loss)", "negative income"
-- CRITICAL: If you see "loss", "deficit", or negative indicators, mark as LOSS not profit
-- Extract exact amounts and note if it's profit or loss
-- Calculate profit margin if both revenue and profit are available
-- Handle GAAP vs non-GAAP distinctions (prioritize GAAP)
+**PROFIT/LOSS EXTRACTION:**
+- Look for: "Net income", "Net loss", "GAAP net income/loss"
+- Use positive numbers for profit, negative for loss
+- Extract amount in base currency units
+- Avoid non-GAAP or adjusted figures unless GAAP unavailable
 
-**EMPLOYEE DATA EXTRACTION:**
-- Look for: "employees", "full-time employees", "workforce", "headcount", "team members"
-- Extract both current and previous year if available
-- Calculate growth rate if both years are present
-- Note any major layoffs, acquisitions affecting headcount
+**EMPLOYEE COUNT:**
+- Sources: "Total employees", "Full-time employees", "Workforce"
+- Extract as integer (no commas, no formatting)
+- Prefer end-of-period counts
 
 **ASSET EXTRACTION:**
-- Look for: "total assets", "assets", "balance sheet total"
-- Extract from balance sheet or financial statements section
-- Note currency and reporting standards
+- Source: "Total assets" from balance sheet
+- Extract in base currency units
 
-**BUSINESS LOGIC VALIDATION:**
-- If profit > 50% of revenue, mark confidence as "low" and flag for review
-- If profit = revenue, mark as "impossible - likely data extraction error"
-- If loss is present, profit amount should be negative or null
-- Revenue should always be positive and larger than absolute profit
-- Revenue per employee should be reasonable for the industry
-- Asset to revenue ratios should be realistic
+**CONFIDENCE RULES:**
+- HIGH: Direct statement with exact figures ("Revenue was $2,610,000,000")
+- MEDIUM: Requires calculation ("Revenue grew 15% to $2.61 billion")
+- LOW: Narrative or unclear ("Revenue increased significantly")
 
-**CURRENCY AND SCALE HANDLING:**
-- Standardize to primary reporting currency
-- Handle billions (B), millions (M), thousands (K) consistently
-- Note if multiple currencies are present
-- Convert percentages to decimal representations where needed
-
-**EXTRACTION CONFIDENCE SCORING:**
-- HIGH: Direct statement with exact figures and clear context
-- MEDIUM: Derived from growth rates or requires minor calculation
-- LOW: Narrative description or potential ambiguity in interpretation
-
-**REQUIRED JSON OUTPUT:**
-Respond with ONLY this JSON structure:
-
+**REQUIRED JSON - NO DEVIATIONS:**
 {
   "financialMetrics": {
     "revenue": {
-      "current": "4.2B" | null,
-      "previous": "3.4B" | null,
-      "growth": "23%" | null,
-      "currency": "USD" | "EUR" | "CAD" | etc,
-      "confidence": "high" | "medium" | "low",
-      "sourceText": "exact quote from document including surrounding context",
-      "extractionMethod": "direct_statement" | "growth_narrative" | "calculated"
+      "current": "2610000000",
+      "previous": "2263000000", 
+      "growth": "0.15",
+      "currency": "USD",
+      "confidence": "high",
+      "sourceText": "Total revenue was $2.610 billion, an increase of 15% year-over-year.",
+      "extractionMethod": "direct_statement"
     },
     "profitLoss": {
-      "type": "profit" | "loss" | "breakeven",
-      "amount": "500M" | "-200M" | null,
-      "margin": "12%" | null,
-      "confidence": "high" | "medium" | "low",
-      "sourceText": "exact quote from document including surrounding context",
-      "validationFlags": ["profit_exceeds_50_percent", "unusual_margin"] | []
+      "type": "profit",
+      "amount": "28000000",
+      "margin": "0.011",
+      "confidence": "high", 
+      "sourceText": "GAAP net income was $28 million",
+      "validationFlags": []
     },
     "employees": {
-      "total": 50000 | null,
-      "previousYear": 45000 | null,
-      "growth": "11%" | null,
-      "confidence": "high" | "medium" | "low",
-      "sourceText": "exact quote from document including surrounding context"
+      "total": 5914,
+      "previousYear": null,
+      "growth": null,
+      "confidence": "high",
+      "sourceText": "As of January 31, 2025, we had 5,914 employees"
     },
     "assets": {
-      "total": "15B" | null,
-      "currency": "USD" | null,
-      "confidence": "high" | "medium" | "low",
-      "sourceText": "exact quote from document including surrounding context"
+      "total": "9437000000",
+      "currency": "USD", 
+      "confidence": "high",
+      "sourceText": "Total assets $9,437 million"
     },
     "validation": {
-      "revenueReasonable": true | false,
-      "profitMarginReasonable": true | false,
-      "crossCheckPassed": true | false,
-      "flaggedForReview": true | false,
-      "notes": "Any validation concerns, extraction challenges, or data quality issues",
-      "extractionMethod": "comprehensive_financial_analysis"
+      "revenueReasonable": true,
+      "profitMarginReasonable": true,
+      "crossCheckPassed": true,
+      "flaggedForReview": false,
+      "notes": "All metrics extracted successfully with high confidence",
+      "extractionMethod": "direct_statement"
     }
   }
 }
 
-**SPECIAL HANDLING FOR EDGE CASES:**
-- If financial data is presented in narrative form ("revenue grew significantly"), extract the context and mark confidence as "low"
-- If multiple currency units are present, standardize to primary reporting currency and note others
-- If fiscal year differs from calendar year, note this in the sourceText
-- If pro forma vs GAAP numbers are mentioned, prioritize GAAP and note the difference
-- For companies with segments, extract consolidated figures first
-- Handle restatements or adjustments by using the most recent corrected figures
+**CRITICAL RULES:**
+1. Numbers ONLY in base units - no "B", "M", "K" suffixes
+2. Exact sourceText quotes from document
+3. Use null for missing data, never estimate
+4. extractionMethod must be: "direct_statement", "calculated", or "narrative_based"
+5. Confidence based on source clarity, not complexity
 
-Focus on precision, business logic validation, and providing rich context for the next analysis stage.`;
+Extract with absolute precision. No approximations.`;
 
 export async function extractFinancialMetrics(
   filePath: string,
@@ -170,7 +151,7 @@ export async function extractFinancialMetrics(
       : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
     const result = await model.generateContent([
-      ENHANCED_FINANCIAL_EXTRACTION_PROMPT,
+      RELIABLE_FINANCIAL_EXTRACTION_PROMPT,
       {
         inlineData: {
           data: base64Data,
