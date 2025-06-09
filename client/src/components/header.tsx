@@ -19,7 +19,7 @@ export default function Header() {
               <Search className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">Discovery ACEs</h1>
+              <h1 className="text-xl font-semibold text-slate-800">PREP</h1>
               <p className="text-xs text-slate-500">Sales Intelligence Tool</p>
             </div>
           </Link>
