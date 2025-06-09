@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FileText, MessageSquare, Lightbulb, MapPin } from "lucide-react";
-import { HRInsight } from "server/services/gemini";
+import { HRInsight } from "@/types/upload";
 
 interface InsightDetailModalProps {
   insight: HRInsight;
