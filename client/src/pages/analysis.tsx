@@ -13,6 +13,7 @@ import { Link } from "wouter";
 import VisualizationControls, { type ViewMode } from "@/components/visualization/visualization-controls";
 import type { AnalysisData, HRInsight } from "@/types/upload";
 import { useToast } from "@/hooks/use-toast";
+import { ExpandableBadge } from "@/components/insight/expandable-badge";
 
 interface InsightSectionProps {
   title: string;
@@ -49,24 +50,14 @@ function InsightSection({ title, icon, insights, description }: InsightSectionPr
         <p className="text-sm text-slate-600">{description}</p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-2">
           {insights.map((insight, index) => (
-            <div key={index} className="border-l-4 border-primary/20 pl-4">
-              <div className="space-y-3">
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <p className="text-sm text-slate-600 font-medium mb-1">Data Point:</p>
-                  <p className="text-slate-800">{insight.dataPoint}</p>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm text-blue-600 font-medium mb-1">HR Relevance:</p>
-                  <p className="text-blue-800">{insight.hrRelevance}</p>
-                </div>
-                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-600 font-medium mb-1">Conversation Starter:</p>
-                  <p className="text-green-900 font-medium">"{insight.conversationStarter}"</p>
-                </div>
-              </div>
-            </div>
+            <ExpandableBadge
+              key={index}
+              insight={insight}
+              displayMode="card"
+              showPageReference={true}
+            />
           ))}
         </div>
       </CardContent>

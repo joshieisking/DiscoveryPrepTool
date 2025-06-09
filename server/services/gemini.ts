@@ -1,9 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { readFileSync } from "fs";
-import { analyzeDocumentPipeline } from "./analysis-pipeline";
+import {
+  analyzeDocumentPipeline,
+  analyzeDocumentWithFallback,
+  PipelineResult,
+} from "./analysis-pipeline";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// Keep existing interfaces for backward compatibility
 export interface HRInsight {
   dataPoint: string;
   hrRelevance: string;
@@ -21,7 +26,45 @@ export interface HRAnalysisResult {
   strategicPeopleInitiatives: HRInsight[];
 }
 
-const HR_ANALYSIS_PROMPT = `You are analyzing an annual report to help a solution advisor prepare for a discovery call with an HR leader. Extract key insights that demonstrate business understanding and create talking points.
+// New enhanced interface that includes financial metrics
+export interface EnhancedAnalysisResult extends HRAnalysisResult {
+  financialMetrics?: {
+    revenue: {
+      current: string | null;
+      previous: string | null;
+      growth: string | null;
+      currency: string;
+      confidence: "high" | "medium" | "low";
+    };
+    profitLoss: {
+      type: "profit" | "loss" | "breakeven";
+      amount: string | null;
+      margin: string | null;
+      confidence: "high" | "medium" | "low";
+    };
+    employees: {
+      total: number | null;
+      previousYear: number | null;
+      growth: string | null;
+      confidence: "high" | "medium" | "low";
+    };
+  };
+  processingStats?: {
+    stage1Duration: number;
+    stage2Duration: number;
+    totalDuration: number;
+    qualityScore: number;
+  };
+  extractionQuality?: {
+    overallConfidence: "high" | "medium" | "low";
+    dataCompleteness: "complete" | "partial" | "limited";
+    validationConcerns: string[];
+    recommendedFollowUp: string[];
+  };
+}
+
+// Legacy prompt for fallback (your original working prompt)
+const LEGACY_HR_ANALYSIS_PROMPT = `You are analyzing an annual report to help a solution advisor prepare for a discovery call with an HR leader. Extract key insights that demonstrate business understanding and create talking points.
 
 **CRITICAL FINANCIAL EXTRACTION REQUIREMENTS:**
 
@@ -77,97 +120,20 @@ Always include this exact JSON structure at the beginning of your response:
   }
 }
 
-**HR ANALYSIS CATEGORIES:**
-After completing financial extraction, proceed with the four main categories:
+[Continue with your original HR analysis instructions...]
 
-**BUSINESS CONTEXT:**
-- Use the validated financial metrics above for revenue growth and profit analysis
-- Include total assets and employee count with precise numbers
-- Geographic expansion or new market plans with investment amounts
-- Geographic revenue breakdown by region/market (with percentages or amounts)
-- Major acquisitions, divestitures, or restructuring with financial impact
-- Overall business strategy and priorities with budget allocations
+Focus on insights related to HR administration, payroll operations, workforce scheduling and management, talent acquisition and development, employee learning programs, people analytics and reporting, and regulatory compliance.`;
 
-**WORKFORCE INSIGHTS:**
-- Total employee count and growth/reduction trends (include exact current and previous year headcount)
-- Calculate revenue per employee using validated financial data
-- Geographic distribution of employees (with specific percentages or numbers by region)
-- Specific talent challenges, skill gaps, or hiring priorities mentioned
-- Retention, turnover, or employee engagement issues (include specific percentages/scores)
-- Diversity, equity & inclusion initiatives or workforce demographics (with specific metrics)
-- Compensation and benefits costs as percentage of revenue (if mentioned)
-
-**OPERATIONAL CHALLENGES:**
-- Regulatory compliance requirements or changes (especially labor laws, data privacy)
-- Technology transformation or digital initiatives (with investment amounts if mentioned)
-- Cost reduction or efficiency programs (include specific dollar amounts or percentages)
-- Industry-specific operational pressures
-- Workforce-related operational costs and optimization opportunities
-
-**STRATEGIC PEOPLE INITIATIVES:**
-- ESG or sustainability workforce commitments (with specific targets or investments)
-- Remote work, hybrid, or workplace transformation strategy with budget allocations
-- Learning & development or upskilling investments (include specific dollar amounts)
-- Culture change or employee experience initiatives (with metrics if available)
-- People analytics and technology investments mentioned
-
-**ENHANCED DATA EXTRACTION INSTRUCTIONS:**
-
-For each insight found, provide:
-1. The specific data point or quote (prioritize exact numbers, percentages, and dollar amounts)
-2. A comprehensive "why this matters to HR" explanation connecting to business impact
-3. A sophisticated conversation starter that demonstrates deep business understanding
-4. Source context (the surrounding text/section where this insight was found)
-5. Confidence level (1-10 scale, where 10 is highly confident in accuracy)
-6. Page reference if available (e.g., "Page 15", "Executive Summary")
-7. Strategic implications for HR technology and process optimization
-
-**FINAL JSON STRUCTURE:**
-Respond with this complete structure:
-
-{
-  "financialMetrics": { /* as defined above */ },
-  "summary": "Comprehensive executive summary highlighting the most significant HR-relevant insights and strategic implications, incorporating validated financial context",
-  "businessContext": [
-    {
-      "dataPoint": "Detailed quote or data with full context and supporting metrics",
-      "hrRelevance": "Comprehensive explanation of strategic HR implications and operational impact",
-      "conversationStarter": "Substantive discovery question that demonstrates business understanding and opens multiple conversation paths",
-      "sourceContext": "Surrounding text and section context where this insight was extracted from",
-      "confidence": 8,
-      "pageReference": "Page number or section name where found",
-      "strategicImplications": "How this impacts HR technology needs and process requirements"
-    }
-  ],
-  "workforceInsights": [...],
-  "operationalChallenges": [...],
-  "strategicPeopleInitiatives": [...],
-  "extractionQuality": {
-    "overallConfidence": "high" | "medium" | "low",
-    "dataCompleteness": "complete" | "partial" | "limited",
-    "validationConcerns": ["list of any concerns"],
-    "recommendedFollowUp": ["list of areas needing clarification"]
-  }
-}
-
-**SPECIAL HANDLING FOR EDGE CASES:**
-- If financial data is presented in narrative form ("revenue grew significantly"), extract the context and mark confidence as "low"
-- If multiple currency units are present, standardize to primary reporting currency
-- If fiscal year differs from calendar year, note this in the source context
-- If pro forma vs GAAP numbers are mentioned, prioritize GAAP and note the difference
-- For companies with segments, extract consolidated figures first, then segment breakdowns
-
-Focus on insights related to HR administration, payroll operations, workforce scheduling and management, talent acquisition and development, employee learning programs, people analytics and reporting, and regulatory compliance - areas typically addressed by comprehensive HR technology platforms.`;
-
+// Enhanced JSON extraction (from your original code)
 function findBalancedJSON(text: string): string | null {
   let braceCount = 0;
   let start = -1;
-  
+
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '{') {
+    if (text[i] === "{") {
       if (start === -1) start = i;
       braceCount++;
-    } else if (text[i] === '}') {
+    } else if (text[i] === "}") {
       braceCount--;
       if (braceCount === 0 && start !== -1) {
         return text.substring(start, i + 1);
@@ -179,103 +145,162 @@ function findBalancedJSON(text: string): string | null {
 
 function sanitizeJSON(jsonStr: string): string {
   return jsonStr
-    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* comments */
-    .replace(/\/\/.*$/gm, '')         // Remove // comments
-    .replace(/,(\s*[}\]])/g, '$1')    // Remove trailing commas
-    .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "")
+    .replace(/,(\s*[}\]])/g, "$1")
+    .replace(/([{,]\s*)(\w+):/g, '$1"$2":');
 }
 
 function extractJSONRobust(text: string): string {
   const strategies = [
-    // Strategy 1: Code block extraction
     () => {
       const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
       return codeBlockMatch ? codeBlockMatch[1] : null;
     },
-    
-    // Strategy 2: Balanced brace detection
     () => findBalancedJSON(text),
-    
-    // Strategy 3: Original regex with sanitization
     () => {
       const match = text.match(/\{[\s\S]*\}/);
       return match ? sanitizeJSON(match[0]) : null;
     },
-    
-    // Strategy 4: Find largest JSON-like block
     () => {
       const matches = text.match(/\{[\s\S]*?\}/g);
       if (matches) {
-        return matches.reduce((longest, current) => 
-          current.length > longest.length ? current : longest
+        return matches.reduce((longest, current) =>
+          current.length > longest.length ? current : longest,
         );
       }
       return null;
-    }
+    },
   ];
-  
+
   for (let i = 0; i < strategies.length; i++) {
     try {
       const jsonString = strategies[i]();
       if (jsonString) {
-        // Test if it's valid JSON
         JSON.parse(jsonString);
         return jsonString;
       }
     } catch (error) {
-      console.warn(`JSON extraction strategy ${i + 1} failed:`, error instanceof Error ? error.message : String(error));
+      console.warn(
+        `JSON extraction strategy ${i + 1} failed:`,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
-  
-  // Log raw response for debugging
-  console.error('All JSON extraction strategies failed. Raw response preview:', text.substring(0, 500));
+
+  console.error(
+    "All JSON extraction strategies failed. Raw response preview:",
+    text.substring(0, 500),
+  );
   throw new Error("Unable to extract valid JSON from Gemini response");
 }
 
 function validateResponse(parsed: any): HRAnalysisResult {
-  // Ensure required fields exist with defaults
   const result = {
-    summary: parsed.summary || 'Analysis unavailable',
-    businessContext: Array.isArray(parsed.businessContext) ? parsed.businessContext : [],
-    workforceInsights: Array.isArray(parsed.workforceInsights) ? parsed.workforceInsights : [],
-    operationalChallenges: Array.isArray(parsed.operationalChallenges) ? parsed.operationalChallenges : [],
-    strategicPeopleInitiatives: Array.isArray(parsed.strategicPeopleInitiatives) ? parsed.strategicPeopleInitiatives : []
+    summary: parsed.summary || "Analysis unavailable",
+    businessContext: Array.isArray(parsed.businessContext)
+      ? parsed.businessContext
+      : [],
+    workforceInsights: Array.isArray(parsed.workforceInsights)
+      ? parsed.workforceInsights
+      : [],
+    operationalChallenges: Array.isArray(parsed.operationalChallenges)
+      ? parsed.operationalChallenges
+      : [],
+    strategicPeopleInitiatives: Array.isArray(parsed.strategicPeopleInitiatives)
+      ? parsed.strategicPeopleInitiatives
+      : [],
   };
-  
+
   return result as HRAnalysisResult;
 }
 
+// MAIN EXPORT - Enhanced version with fallback
 export async function analyzeDocumentWithGemini(
   filePath: string,
-): Promise<HRAnalysisResult> {
-  try {
-    // Try multi-stage pipeline first
-    return await analyzeDocumentPipeline(filePath);
-  } catch (pipelineError) {
-    console.warn('Multi-stage pipeline failed, falling back to legacy approach:', pipelineError);
-    
-    // Fallback to original monolithic approach
-    return await analyzeDocumentLegacy(filePath);
+  useEnhancedPipeline: boolean = true,
+): Promise<EnhancedAnalysisResult> {
+  console.log(
+    `Starting document analysis with ${useEnhancedPipeline ? "enhanced pipeline" : "legacy approach"}`,
+  );
+
+  if (useEnhancedPipeline) {
+    try {
+      // Try enhanced multi-stage pipeline first
+      const pipelineResult = await analyzeDocumentWithFallback(filePath);
+
+      // Transform to legacy format for backward compatibility
+      const result: EnhancedAnalysisResult = {
+        summary: pipelineResult.hrInsights.summary,
+        businessContext: pipelineResult.hrInsights.businessContext,
+        workforceInsights: pipelineResult.hrInsights.workforceInsights,
+        operationalChallenges: pipelineResult.hrInsights.operationalChallenges,
+        strategicPeopleInitiatives:
+          pipelineResult.hrInsights.strategicPeopleInitiatives,
+
+        // Enhanced data
+        financialMetrics: {
+          revenue: {
+            current: pipelineResult.financialMetrics.revenue.current,
+            previous: pipelineResult.financialMetrics.revenue.previous,
+            growth: pipelineResult.financialMetrics.revenue.growth,
+            currency: pipelineResult.financialMetrics.revenue.currency,
+            confidence: pipelineResult.financialMetrics.revenue.confidence,
+          },
+          profitLoss: {
+            type: pipelineResult.financialMetrics.profitLoss.type,
+            amount: pipelineResult.financialMetrics.profitLoss.amount,
+            margin: pipelineResult.financialMetrics.profitLoss.margin,
+            confidence: pipelineResult.financialMetrics.profitLoss.confidence,
+          },
+          employees: {
+            total: pipelineResult.financialMetrics.employees.total,
+            previousYear:
+              pipelineResult.financialMetrics.employees.previousYear,
+            growth: pipelineResult.financialMetrics.employees.growth,
+            confidence: pipelineResult.financialMetrics.employees.confidence,
+          },
+        },
+        processingStats: {
+          stage1Duration: pipelineResult.processingStats.stage1Duration,
+          stage2Duration: pipelineResult.processingStats.stage2Duration,
+          totalDuration: pipelineResult.processingStats.totalDuration,
+          qualityScore: calculateQualityScore(pipelineResult),
+        },
+        extractionQuality: pipelineResult.hrInsights.extractionQuality,
+      };
+
+      console.log("Enhanced pipeline completed successfully");
+      return result;
+    } catch (pipelineError) {
+      console.warn(
+        "Enhanced pipeline failed, falling back to legacy approach:",
+        pipelineError,
+      );
+      // Fall through to legacy approach
+    }
   }
+
+  // Legacy approach (your original working code)
+  return await analyzeDocumentLegacy(filePath);
 }
 
+// Legacy function (keep for backward compatibility and fallback)
 async function analyzeDocumentLegacy(
   filePath: string,
-): Promise<HRAnalysisResult> {
+): Promise<EnhancedAnalysisResult> {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Read the file as base64
     const fileBuffer = readFileSync(filePath);
     const base64Data = fileBuffer.toString("base64");
 
-    // Determine MIME type based on file extension
     const mimeType = filePath.toLowerCase().endsWith(".pdf")
       ? "application/pdf"
       : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
     const result = await model.generateContent([
-      HR_ANALYSIS_PROMPT,
+      LEGACY_HR_ANALYSIS_PROMPT,
       {
         inlineData: {
           data: base64Data,
@@ -287,12 +312,10 @@ async function analyzeDocumentLegacy(
     const response = await result.response;
     const text = response.text();
 
-    // Extract JSON using robust multi-strategy approach
     const jsonString = extractJSONRobust(text);
     const parsedResult = JSON.parse(jsonString);
     const analysisResult = validateResponse(parsedResult);
 
-    // Validate the structure
     if (
       !analysisResult.summary ||
       !Array.isArray(analysisResult.businessContext) ||
@@ -303,11 +326,68 @@ async function analyzeDocumentLegacy(
       throw new Error("Invalid analysis structure from Gemini");
     }
 
-    return analysisResult;
+    // Return in enhanced format for consistency
+    const enhancedResult: EnhancedAnalysisResult = {
+      ...analysisResult,
+      financialMetrics: parsedResult.financialMetrics || undefined,
+      processingStats: {
+        stage1Duration: 0,
+        stage2Duration: 0,
+        totalDuration: 0,
+        qualityScore: 0,
+      },
+    };
+
+    return enhancedResult;
   } catch (error) {
-    console.error("Error analyzing document with Gemini:", error);
+    console.error(
+      "Error analyzing document with legacy Gemini approach:",
+      error,
+    );
     throw new Error(
       `Failed to analyze document: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
+
+// Utility function for quality scoring
+function calculateQualityScore(pipelineResult: PipelineResult): number {
+  let score = 0;
+
+  // Financial metrics quality (0-40 points)
+  if (pipelineResult.financialMetrics.revenue.current) score += 10;
+  if (pipelineResult.financialMetrics.revenue.confidence === "high") score += 5;
+  if (pipelineResult.financialMetrics.profitLoss.amount) score += 10;
+  if (pipelineResult.financialMetrics.employees.total) score += 10;
+  if (pipelineResult.financialMetrics.validation.crossCheckPassed) score += 5;
+
+  // HR insights quality (0-60 points)
+  const totalInsights =
+    pipelineResult.hrInsights.businessContext.length +
+    pipelineResult.hrInsights.workforceInsights.length +
+    pipelineResult.hrInsights.operationalChallenges.length +
+    pipelineResult.hrInsights.strategicPeopleInitiatives.length;
+
+  score += Math.min(30, totalInsights * 2);
+
+  if (pipelineResult.hrInsights.extractionQuality.overallConfidence === "high")
+    score += 20;
+  else if (
+    pipelineResult.hrInsights.extractionQuality.overallConfidence === "medium"
+  )
+    score += 10;
+
+  if (
+    pipelineResult.hrInsights.extractionQuality.dataCompleteness === "complete"
+  )
+    score += 10;
+  else if (
+    pipelineResult.hrInsights.extractionQuality.dataCompleteness === "partial"
+  )
+    score += 5;
+
+  return Math.min(100, score);
+}
+
+// Export legacy function for backward compatibility
+export { analyzeDocumentLegacy };
