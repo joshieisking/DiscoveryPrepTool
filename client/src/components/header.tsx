@@ -20,7 +20,7 @@ export default function Header() {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-slate-800">PREP</h1>
-              <p className="text-xs text-slate-500">Sales Intelligence Tool</p>
+              <p className="text-xs text-slate-500">Perfect Readiness for Every Presentation</p>
             </div>
           </Link>
 
