@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import { storage } from "./storage";
 import { insertUploadSchema } from "@shared/schema";
-import { analyzeDocumentWithGemini } from "./services/gemini";
+import { addAnalysisJob } from "./queue/analysis-queue";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -74,26 +74,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUploadSchema.parse(uploadData);
       const newUpload = await storage.createUpload(validatedData);
 
-      // Process document with GEMINI
-      setTimeout(async () => {
-        try {
-          console.log(`Processing upload ${newUpload.id}...`);
-          
-          const { analyzeDocumentWithGemini } = await import('./services/gemini');
-          const analysisResult = await analyzeDocumentWithGemini(req.file!.path);
-
-          const updatedUpload = await storage.updateUploadStatus(
-            newUpload.id, 
-            "completed", 
-            JSON.stringify(analysisResult)
-          );
-          
-          console.log(`Upload ${newUpload.id} analysis completed:`, updatedUpload);
-        } catch (error) {
-          console.error(`Error processing upload ${newUpload.id}:`, error);
-          await storage.updateUploadStatus(newUpload.id, "failed");
-        }
-      }, 2000);
+      // Queue document for background analysis
+      await addAnalysisJob({
+        uploadId: newUpload.id,
+        filePath: req.file.path,
+        isReanalysis: false,
+      });
 
       res.status(201).json(newUpload);
     } catch (error) {
@@ -135,20 +121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update status to processing
       await storage.updateUploadStatus(id, 'processing');
       
-      // Start reanalysis in background
-      setTimeout(async () => {
-        try {
-          console.log(`Reprocessing upload ${id}...`);
-          const analysisResult = await analyzeDocumentWithGemini(upload.filePath!);
-          const analysisData = JSON.stringify(analysisResult);
-          
-          await storage.updateUploadStatus(id, 'completed', analysisData);
-          console.log(`Reanalysis completed for upload ${id}`);
-        } catch (error) {
-          console.error(`Error reprocessing upload ${id}:`, error);
-          await storage.updateUploadStatus(id, 'failed');
-        }
-      }, 1000);
+      // Queue document for reanalysis
+      await addAnalysisJob({
+        uploadId: id,
+        filePath: upload.filePath!,
+        isReanalysis: true,
+      });
 
       // Return updated upload immediately
       const updatedUpload = await storage.getUploadById(id);

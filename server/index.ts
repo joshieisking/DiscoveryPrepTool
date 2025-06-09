@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeRedis } from "./queue/redis";
+import { initializeQueue, closeQueue } from "./queue/analysis-queue";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Redis and queue system
+  await initializeRedis();
+  await initializeQueue();
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -66,5 +72,18 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('Shutting down gracefully...');
+    await closeQueue();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    console.log('Shutting down gracefully...');
+    await closeQueue();
+    process.exit(0);
   });
 })();
