@@ -36,9 +36,143 @@ export interface PipelineError {
   };
 }
 
+// Helper function to measure stage execution time
+async function measureStage<T>(
+  stageName: string,
+  stageFunction: () => Promise<T>
+): Promise<{ result: T; duration: number; success: boolean }> {
+  const startTime = Date.now();
+  try {
+    const result = await stageFunction();
+    const duration = Date.now() - startTime;
+    return { result, duration, success: true };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`${stageName} failed:`, error);
+    throw { error, duration, success: false };
+  }
+}
+
+// Parallel execution implementation
+async function executeStagesParallel(filePath: string): Promise<PipelineResult> {
+  const startTime = Date.now();
+  console.log("Starting parallel analysis pipeline...");
+
+  try {
+    // Execute all stages in parallel
+    const stageResults = await Promise.allSettled([
+      measureStage('Stage 0', () => extractBusinessOverview(filePath)),
+      measureStage('Stage 1', () => extractFinancialMetrics(filePath)),
+      measureStage('Stage 2', () => generateHRInsights(filePath))
+    ]);
+
+    // Process results
+    const [stage0Result, stage1Result, stage2Result] = stageResults;
+    
+    let businessOverview: BusinessOverview;
+    let financialMetrics: FinancialMetrics;
+    let hrInsights: HRInsights;
+    let stage0Duration = 0;
+    let stage1Duration = 0;
+    let stage2Duration = 0;
+    let stage0Success = false;
+    let stage1Success = false;
+    let stage2Success = false;
+    let partialSuccess = false;
+
+    // Handle Stage 0 (Business Overview)
+    if (stage0Result.status === 'fulfilled') {
+      businessOverview = stage0Result.value.result;
+      stage0Duration = stage0Result.value.duration;
+      stage0Success = true;
+      console.log("Stage 0 completed successfully:", {
+        duration: stage0Duration,
+        industry: businessOverview.industryClassification,
+        confidence: businessOverview.extractionQuality.confidence,
+      });
+    } else {
+      console.warn("Stage 0 failed, using fallback");
+      businessOverview = getDefaultBusinessOverview();
+      partialSuccess = true;
+    }
+
+    // Handle Stage 1 (Financial Metrics)
+    if (stage1Result.status === 'fulfilled') {
+      financialMetrics = stage1Result.value.result;
+      stage1Duration = stage1Result.value.duration;
+      stage1Success = true;
+      console.log("Stage 1 completed successfully:", {
+        duration: stage1Duration,
+        revenue: financialMetrics.revenue.current,
+        employees: financialMetrics.employees.total,
+      });
+    } else {
+      console.warn("Stage 1 failed, using fallback");
+      financialMetrics = await extractFinancialMetricsRelaxed(filePath);
+      partialSuccess = true;
+    }
+
+    // Handle Stage 2 (HR Insights)
+    if (stage2Result.status === 'fulfilled') {
+      hrInsights = stage2Result.value.result;
+      stage2Duration = stage2Result.value.duration;
+      stage2Success = true;
+      console.log("Stage 2 completed successfully:", {
+        duration: stage2Duration,
+        businessContextInsights: hrInsights.businessContext.length,
+        workforceInsights: hrInsights.workforceInsights.length,
+      });
+    } else {
+      console.error("Stage 2 failed, cannot proceed without HR insights");
+      throw new Error("HR insights generation failed - this is required for analysis");
+    }
+
+    const totalDuration = Date.now() - startTime;
+    const qualityScore = calculateQualityScore(businessOverview, financialMetrics, hrInsights);
+    
+    console.log("Parallel pipeline completed:", {
+      mode: 'parallel',
+      duration: totalDuration,
+      qualityScore,
+      partialSuccess
+    });
+
+    return {
+      businessOverview,
+      financialMetrics,
+      hrInsights,
+      processingStats: {
+        stage0Duration,
+        stage1Duration,
+        stage2Duration,
+        totalDuration,
+        stage0Success,
+        stage1Success,
+        stage2Success,
+        executionMode: 'parallel',
+        partialSuccess,
+      },
+    };
+  } catch (error) {
+    console.error("Parallel execution failed, falling back to sequential");
+    throw error;
+  }
+}
+
 export async function analyzeDocumentPipeline(
   filePath: string,
 ): Promise<PipelineResult> {
+  // Feature flag check for parallel processing
+  if (FEATURES.PARALLEL_PROCESSING) {
+    try {
+      return await executeStagesParallel(filePath);
+    } catch (error) {
+      console.warn("Parallel processing failed, falling back to sequential:", error);
+      // Continue to sequential execution below
+    }
+  }
+
+  // Sequential execution (existing implementation)
   const startTime = Date.now();
   let stage0Duration = 0;
   let stage1Duration = 0;
@@ -132,6 +266,7 @@ export async function analyzeDocumentPipeline(
         stage0Success,
         stage1Success,
         stage2Success,
+        executionMode: 'sequential',
       },
     };
   } catch (error) {
@@ -295,7 +430,7 @@ async function extractFinancialMetricsRelaxed(
       currency: "USD",
       confidence: "low",
       sourceText: "Unable to extract - using defaults",
-      extractionMethod: "fallback",
+      extractionMethod: "direct_statement",
     },
     profitLoss: {
       type: "profit",
@@ -324,7 +459,7 @@ async function extractFinancialMetricsRelaxed(
       crossCheckPassed: false,
       flaggedForReview: true,
       notes: "Fallback mode - limited financial data available",
-      extractionMethod: "relaxed_fallback",
+      extractionMethod: "direct_statement",
     },
   };
 
