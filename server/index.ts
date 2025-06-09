@@ -39,7 +39,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize Redis and queue system
+  // Initialize queue system (Redis disabled for now)
+  process.env.USE_MEMORY_QUEUE = 'true';
   await initializeRedis();
   await initializeQueue();
 

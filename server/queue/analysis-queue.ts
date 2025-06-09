@@ -55,40 +55,67 @@ export async function initializeQueue(): Promise<void> {
   const redis = getRedis();
   
   if (redis) {
-    // Initialize Redis-based queue
-    analysisQueue = new Queue('document-analysis', {
-      connection: redis,
-      defaultJobOptions: {
-        removeOnComplete: 50,
-        removeOnFail: 20,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+    try {
+      // Create separate Redis connections for BullMQ with minimal retry
+      const queueConnection = new (await import('ioredis')).default({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: 0,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+      });
+
+      const workerConnection = new (await import('ioredis')).default({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: 0,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+      });
+
+      // Suppress Redis errors
+      queueConnection.on('error', () => {});
+      workerConnection.on('error', () => {});
+
+      // Initialize Redis-based queue
+      analysisQueue = new Queue('document-analysis', {
+        connection: queueConnection,
+        defaultJobOptions: {
+          removeOnComplete: 50,
+          removeOnFail: 20,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      },
-    });
+      });
 
-    analysisWorker = new Worker(
-      'document-analysis',
-      async (job: Job<AnalysisJobData>) => {
-        return await processAnalysisJob(job.data);
-      },
-      {
-        connection: redis,
-        concurrency: 1, // Process one document at a time
-      }
-    );
+      analysisWorker = new Worker(
+        'document-analysis',
+        async (job: Job<AnalysisJobData>) => {
+          return await processAnalysisJob(job.data);
+        },
+        {
+          connection: workerConnection,
+          concurrency: 1, // Process one document at a time
+        }
+      );
 
-    analysisWorker.on('completed', (job) => {
-      console.log(`Analysis job ${job.id} completed for upload ${job.data.uploadId}`);
-    });
+      analysisWorker.on('completed', (job) => {
+        console.log(`Analysis job ${job.id} completed for upload ${job.data.uploadId}`);
+      });
 
-    analysisWorker.on('failed', (job, err) => {
-      console.error(`Analysis job ${job?.id} failed for upload ${job?.data.uploadId}:`, err);
-    });
+      analysisWorker.on('failed', (job, err) => {
+        console.error(`Analysis job ${job?.id} failed for upload ${job?.data.uploadId}:`, err);
+      });
 
-    console.log('Redis queue initialized successfully');
+      console.log('Redis queue initialized successfully');
+    } catch (error) {
+      console.log('Redis queue setup failed, using in-memory fallback');
+      analysisQueue = null;
+      analysisWorker = null;
+    }
   } else {
     console.log('Using in-memory queue fallback');
   }
