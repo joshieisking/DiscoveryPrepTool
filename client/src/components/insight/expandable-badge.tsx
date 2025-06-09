@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HRInsight } from "server/services/gemini";
+import { HRInsight } from "@/types/upload";
 import { InsightDetailModal } from "./insight-detail-modal";
 
 interface ExpandableBadgeProps {

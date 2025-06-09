@@ -18,6 +18,10 @@ export interface HRInsight {
   dataPoint: string;
   hrRelevance: string;
   conversationStarter: string;
+  sourceContext?: string;
+  confidence?: number;
+  pageReference?: string;
+  strategicImplications?: string;
 }
 
 export interface AnalysisData {
