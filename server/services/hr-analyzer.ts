@@ -28,287 +28,414 @@ export interface HRInsights {
   };
 }
 
-const FOCUSED_HR_ANALYSIS_PROMPT = `You are an HR technology consultant analyzing an annual report to prepare for a discovery call with an HR leader. You have been provided with validated financial metrics and now need to extract HR-specific insights that demonstrate business understanding.
+// REPLACE THE ENTIRE PROMPT WITH THIS ENHANCED VERSION
+const ENHANCED_HR_ANALYSIS_PROMPT = `You are a senior HR technology consultant with 15+ years of experience analyzing Fortune 500 companies. You're preparing a presales consultant for a high-stakes discovery call with a CHRO or VP of HR. Your analysis must demonstrate sophisticated business understanding that positions the consultant as a trusted strategic advisor.
 
-**FINANCIAL CONTEXT PROVIDED:**
+**VALIDATED FINANCIAL CONTEXT:**
 - Revenue: {{REVENUE}}
 - Profit/Loss: {{PROFIT}}
 - Employees: {{EMPLOYEES}}
 - Assets: {{ASSETS}}
 - Revenue per Employee: {{RPE}}
 
-**HR ANALYSIS CATEGORIES:**
+**CRITICAL SUCCESS CRITERIA:**
+Your insights must help the consultant:
+1. Open conversations about strategic business challenges (not just HR processes)
+2. Demonstrate understanding of industry dynamics and competitive pressures
+3. Connect financial performance directly to HR technology needs
+4. Position advanced HR technology as a competitive advantage
+5. Create urgency around strategic people initiatives
 
-**BUSINESS CONTEXT INSIGHTS:**
-Focus on business factors that impact HR strategy and operations:
-- Geographic expansion or new market plans that affect workforce planning
-- Geographic revenue breakdown by region/market (affecting global HR operations)
-- Major acquisitions, divestitures, or restructuring impacting workforce
-- Market positioning and competitive pressures affecting talent strategy
-- Customer segments and business model changes impacting skill requirements
-- Overall business strategy and priorities requiring workforce transformation
+**ANALYSIS METHODOLOGY:**
 
-**WORKFORCE INSIGHTS:**
-Extract specific people-related data and trends:
-- Employee growth/reduction trends beyond the financial data provided
-- Geographic distribution of employees (percentages or numbers by region)
-- Specific talent challenges, skill gaps, or hiring priorities mentioned
-- Retention, turnover, or employee engagement metrics (specific percentages/scores)
-- Diversity, equity & inclusion initiatives with specific metrics or targets
-- Compensation and benefits costs as percentage of revenue
-- Workforce demographics, age distribution, or tenure information
-- Skills transformation needs or reskilling initiatives
+**BUSINESS CONTEXT INSIGHTS (Target: 3-5 high-impact insights)**
+Focus on strategic business factors that create HR technology urgency:
 
-**OPERATIONAL CHALLENGES:**
-Identify operational issues that HR technology can address:
-- Regulatory compliance requirements (labor laws, data privacy, safety)
-- Technology transformation or digital initiatives affecting workforce
-- Cost reduction or efficiency programs impacting people operations
-- Industry-specific operational pressures affecting HR processes
-- Workforce-related operational costs and optimization opportunities
-- Remote work, hybrid, or workplace transformation challenges
-- Global operations complexity affecting HR administration
+*Required Elements:*
+- Quantified business impacts (revenue, cost, efficiency metrics)
+- Geographic or market expansion complexity requiring workforce scaling
+- M&A activity creating integration challenges
+- Competitive pressures requiring talent differentiation
+- Digital transformation creating new skill requirements
+- Regulatory changes creating compliance complexity
 
-**STRATEGIC PEOPLE INITIATIVES:**
-Extract forward-looking HR strategic initiatives:
-- ESG or sustainability workforce commitments with specific targets
-- Culture change or employee experience transformation programs
-- Learning & development or upskilling investments (specific dollar amounts)
-- People analytics and HR technology investments mentioned
-- Leadership development or succession planning initiatives
-- Workplace innovation or employee engagement programs
-- Performance management or talent development strategy changes
+*Confidence Scoring:*
+- 9-10: Direct financial data with explicit HR implications
+- 7-8: Clear business trends with logical HR connections  
+- 5-6: Implied connections requiring industry knowledge
+- Below 5: Don't include (insufficient confidence for client meeting)
 
-**DATA EXTRACTION REQUIREMENTS:**
+**WORKFORCE INSIGHTS (Target: 4-6 quantified insights)**
+Extract specific people metrics that demonstrate scale and complexity:
 
-For each insight, provide:
-1. **Specific data point**: Direct quote with numbers, percentages, dollar amounts
-2. **HR relevance**: Why this matters strategically to HR operations and technology
-3. **Conversation starter**: Sophisticated discovery question showing business understanding
-4. **Source context**: Surrounding text and document section where found
-5. **Confidence**: 1-10 scale (10 = highly confident, direct statement)
-6. **Page reference**: Section name or page number if available
-7. **Strategic implications**: How this impacts HR technology and process needs
+*Priority Data Points:*
+- Employee headcount growth rates and geographic distribution
+- Specific hiring challenges, skill gaps, or retention issues (with numbers)
+- Compensation costs as % of revenue and regional variations
+- DEI metrics, targets, and program investments
+- Remote/hybrid workforce distribution and management challenges
+- Learning & development spending and effectiveness metrics
 
-**BUSINESS VALUE FOCUS:**
-- Connect each insight to potential HR technology needs
-- Identify process optimization opportunities
-- Highlight compliance and risk management implications
-- Show understanding of operational complexity
-- Demonstrate awareness of strategic workforce planning needs
+**OPERATIONAL CHALLENGES (Target: 3-4 technology-addressable challenges)**
+Identify specific operational pain points requiring HR technology:
 
-**CONVERSATION STARTER QUALITY:**
-Create questions that:
-- Show you understand their business context
-- Open multiple conversation paths
-- Demonstrate knowledge of HR challenges in their industry
-- Connect business strategy to people strategy
-- Invite them to share more about their current state
+*Focus Areas:*
+- Manual processes causing errors or delays
+- Compliance requirements creating administrative burden
+- Data integration challenges across HR systems
+- Reporting and analytics limitations
+- Employee experience gaps affecting engagement
+- Global operations complexity requiring standardization
+
+**STRATEGIC PEOPLE INITIATIVES (Target: 2-4 forward-looking initiatives)**
+Extract technology-enabled strategic initiatives:
+
+*Investment Areas:*
+- People analytics and workforce planning investments
+- Employee experience transformation programs
+- Skills transformation and reskilling initiatives
+- ESG and sustainability workforce commitments
+- HR technology modernization projects
+- Performance management evolution
+
+**ENHANCED CONVERSATION STARTER FRAMEWORK:**
+
+*Tier 1 (Strategic Business Questions):*
+"Given your [specific business context], how is [specific people challenge] impacting your ability to [achieve business objective]?"
+
+*Tier 2 (Operational Efficiency Questions):*
+"With [specific operational complexity], what processes are creating the biggest bottlenecks in [specific HR function]?"
+
+*Tier 3 (Technology Enablement Questions):*
+"As you scale [specific initiative], what data and integration capabilities do you need to [achieve specific outcome]?"
+
+**CONFIDENCE CALIBRATION:**
+- **9-10**: Direct quotes with specific numbers/percentages/dollar amounts
+- **7-8**: Clear statements with implied quantitative impact  
+- **6-7**: Industry context supporting logical inferences
+- **5-6**: Reasonable assumptions based on company profile
+- **Below 5**: Exclude from output (insufficient for client conversation)
 
 **REQUIRED JSON OUTPUT:**
-Respond with ONLY this JSON structure:
-
 {
-  "summary": "Comprehensive executive summary highlighting the most significant HR-relevant insights and strategic implications, incorporating the validated financial context to show business understanding",
+  "summary": "Executive summary connecting financial performance to strategic HR technology needs, highlighting 2-3 most compelling business drivers and quantified opportunities for operational improvement",
   "businessContext": [
     {
-      "dataPoint": "Detailed quote or data with full context and supporting metrics",
-      "hrRelevance": "Comprehensive explanation of strategic HR implications and operational impact",
-      "conversationStarter": "Substantive discovery question that demonstrates business understanding and opens multiple conversation paths",
-      "sourceContext": "Surrounding text and section context where this insight was extracted from",
+      "dataPoint": "Specific business metric, expansion plan, or strategic initiative with quantified impact (revenue, markets, timeline, investment)",
+      "hrRelevance": "Strategic HR implications requiring technology enablement, including process complexity, compliance requirements, and scale challenges",
+      "conversationStarter": "Sophisticated question demonstrating business understanding and connecting business strategy to people strategy challenges",
+      "sourceContext": "Document section and surrounding text providing full context",
       "confidence": 8,
-      "pageReference": "Page number or section name where found",
-      "strategicImplications": "How this impacts HR technology needs and process requirements"
+      "pageReference": "Specific section, page, or document area",
+      "strategicImplications": "Technology requirements and Dayforce capability alignment for addressing strategic business needs"
     }
   ],
   "workforceInsights": [
     {
-      "dataPoint": "Specific workforce data or trend with exact numbers/percentages",
-      "hrRelevance": "Why this workforce insight matters for HR strategy and operations",
-      "conversationStarter": "Discovery question that shows understanding of workforce challenges",
-      "sourceContext": "Document section and surrounding context",
+      "dataPoint": "Quantified workforce data (headcount, growth, costs, metrics) with specific numbers and percentages",
+      "hrRelevance": "Operational impact on HR processes, technology requirements, and business efficiency",
+      "conversationStarter": "Question exploring current state challenges and operational inefficiencies",
+      "sourceContext": "Source section with supporting data context",
       "confidence": 9,
-      "pageReference": "Where this was found in the document",
-      "strategicImplications": "Technology and process implications for HR"
+      "pageReference": "Document location reference",
+      "strategicImplications": "Process optimization opportunities and technology automation needs"
     }
   ],
   "operationalChallenges": [
     {
-      "dataPoint": "Specific operational challenge or compliance requirement",
-      "hrRelevance": "How this operational challenge impacts HR processes and technology",
-      "conversationStarter": "Question that explores current state and pain points",
-      "sourceContext": "Source section and context",
+      "dataPoint": "Specific operational challenge with business impact (costs, risks, inefficiencies)",
+      "hrRelevance": "Technology solution opportunities and process improvement potential",
+      "conversationStarter": "Question exploring pain points and current solution limitations",
+      "sourceContext": "Challenge description and business impact context",
       "confidence": 7,
-      "pageReference": "Document location",
-      "strategicImplications": "Process optimization and technology needs"
+      "pageReference": "Document section reference",
+      "strategicImplications": "Automation opportunities and system integration requirements"
     }
   ],
   "strategicPeopleInitiatives": [
     {
-      "dataPoint": "Strategic initiative with budget/timeline/targets if mentioned",
-      "hrRelevance": "Strategic significance for HR transformation and technology",
-      "conversationStarter": "Forward-looking question about strategic initiatives",
-      "sourceContext": "Strategic section context",
+      "dataPoint": "Forward-looking initiative with investment, timeline, or success metrics",
+      "hrRelevance": "Technology enablement requirements for achieving strategic objectives",
+      "conversationStarter": "Future-state question about capabilities and implementation approach",
+      "sourceContext": "Strategic initiative context and supporting details",
       "confidence": 8,
-      "pageReference": "Strategic plan or initiative section",
-      "strategicImplications": "Future-state HR technology and capability requirements"
+      "pageReference": "Strategic section or initiative description",
+      "strategicImplications": "Future technology capabilities and platform requirements"
     }
   ],
   "extractionQuality": {
     "overallConfidence": "high" | "medium" | "low",
-    "dataCompleteness": "complete" | "partial" | "limited",
-    "validationConcerns": ["list any concerns about data quality or extraction"],
-    "recommendedFollowUp": ["list areas needing clarification in discovery call"]
+    "dataCompleteness": "complete" | "partial" | "limited", 
+    "validationConcerns": ["Specific data quality or interpretation concerns"],
+    "recommendedFollowUp": ["Specific discovery questions to validate assumptions and gather missing data"]
   }
 }
 
-**QUALITY STANDARDS:**
-- Prioritize insights with specific metrics and dollar amounts
-- Focus on insights most relevant to HR technology and process optimization
-- Ensure conversation starters are sophisticated and business-focused
-- Maintain high confidence levels by sticking to explicit statements
-- Connect all insights to potential Dayforce solution areas where relevant
+**MINIMUM STANDARDS:**
+- Each category must have at least 2 insights with confidence ≥ 7
+- All conversation starters must be open-ended and multi-layered
+- Every insight must connect to quantified business impact
+- Source context must provide sufficient detail for validation
+- Strategic implications must reference specific Dayforce capabilities
 
-Extract insights that demonstrate deep business understanding and create compelling talking points for an HR technology discovery conversation.`;
+Extract insights that transform your consultant from vendor to strategic advisor through sophisticated business understanding and quantified value articulation.`;
 
+// ADD THIS NEW VALIDATION FUNCTION
+function validateHRInsights(insights: any): HRInsights {
+  const validated: HRInsights = {
+    summary:
+      insights.summary || "Analysis completed with limited insights available.",
+    businessContext: [],
+    workforceInsights: [],
+    operationalChallenges: [],
+    strategicPeopleInitiatives: [],
+    extractionQuality: {
+      overallConfidence: "medium",
+      dataCompleteness: "partial",
+      validationConcerns: [],
+      recommendedFollowUp: [],
+    },
+  };
+
+  // Validate and filter insights by confidence threshold
+  const categories = [
+    "businessContext",
+    "workforceInsights",
+    "operationalChallenges",
+    "strategicPeopleInitiatives",
+  ];
+
+  categories.forEach((category) => {
+    if (Array.isArray(insights[category])) {
+      validated[category as keyof HRInsights] = insights[category]
+        .filter((insight: any) => {
+          // Quality gates
+          const hasDataPoint =
+            insight.dataPoint && insight.dataPoint.length > 50;
+          const hasConfidence = insight.confidence && insight.confidence >= 7;
+          const hasConversationStarter =
+            insight.conversationStarter &&
+            insight.conversationStarter.length > 100;
+          const hasStrategicImplications =
+            insight.strategicImplications &&
+            insight.strategicImplications.length > 50;
+
+          if (
+            !hasDataPoint ||
+            !hasConfidence ||
+            !hasConversationStarter ||
+            !hasStrategicImplications
+          ) {
+            console.warn(`Filtering low-quality insight in ${category}:`, {
+              hasDataPoint,
+              hasConfidence,
+              hasConversationStarter,
+              hasStrategicImplications,
+              confidence: insight.confidence,
+            });
+            return false;
+          }
+
+          return true;
+        })
+        .map((insight: any) => ({
+          dataPoint: insight.dataPoint,
+          hrRelevance: insight.hrRelevance || "HR relevance not specified",
+          conversationStarter: insight.conversationStarter,
+          sourceContext:
+            insight.sourceContext || "Source context not available",
+          confidence: Math.min(Math.max(insight.confidence, 1), 10),
+          pageReference:
+            insight.pageReference || "Page reference not available",
+          strategicImplications: insight.strategicImplications,
+        }));
+    }
+  });
+
+  // Set overall confidence based on insight quality
+  const totalInsights =
+    validated.businessContext.length +
+    validated.workforceInsights.length +
+    validated.operationalChallenges.length +
+    validated.strategicPeopleInitiatives.length;
+
+  const avgConfidence =
+    totalInsights > 0
+      ? [
+          ...validated.businessContext,
+          ...validated.workforceInsights,
+          ...validated.operationalChallenges,
+          ...validated.strategicPeopleInitiatives,
+        ].reduce((sum, insight) => sum + insight.confidence, 0) / totalInsights
+      : 0;
+
+  validated.extractionQuality = {
+    overallConfidence:
+      avgConfidence >= 8 ? "high" : avgConfidence >= 6 ? "medium" : "low",
+    dataCompleteness:
+      totalInsights >= 10
+        ? "complete"
+        : totalInsights >= 5
+          ? "partial"
+          : "limited",
+    validationConcerns:
+      totalInsights < 5
+        ? ["Limited insights extracted - document may lack HR-specific content"]
+        : [],
+    recommendedFollowUp:
+      totalInsights < 8
+        ? [
+            "Validate key business metrics",
+            "Explore specific HR challenges",
+            "Discuss technology roadmap",
+          ]
+        : [],
+  };
+
+  return validated;
+}
+
+// REPLACE THE EXISTING generateHRInsights FUNCTION WITH THIS ENHANCED VERSION
 export async function generateHRInsights(
   filePath: string,
   financialContext: FinancialMetrics,
+  maxRetries = 3,
 ): Promise<HRInsights> {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 0.2, // Slightly higher for more creative conversation starters
-        topP: 0.9,
-      },
-    });
+  let lastError: Error;
 
-    const fileBuffer = readFileSync(filePath);
-    const base64Data = fileBuffer.toString("base64");
-
-    const mimeType = filePath.toLowerCase().endsWith(".pdf")
-      ? "application/pdf"
-      : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-    // Build rich financial context string
-    const revenueStr = financialContext.revenue.current
-      ? `${financialContext.revenue.current} ${financialContext.revenue.currency}${financialContext.revenue.growth ? ` (${financialContext.revenue.growth} growth)` : ""}`
-      : "Not available";
-
-    const profitStr = financialContext.profitLoss.amount
-      ? `${financialContext.profitLoss.amount} ${financialContext.profitLoss.type}${financialContext.profitLoss.margin ? ` (${financialContext.profitLoss.margin} margin)` : ""}`
-      : "Not available";
-
-    const employeesStr = financialContext.employees.total
-      ? `${financialContext.employees.total.toLocaleString()}${financialContext.employees.growth ? ` (${financialContext.employees.growth} growth)` : ""}`
-      : "Not available";
-
-    const assetsStr = financialContext.assets.total
-      ? `${financialContext.assets.total} ${financialContext.assets.currency}`
-      : "Not available";
-
-    // Calculate revenue per employee if we have both metrics
-    let rpeStr = "Not available";
-    if (financialContext.revenue.current && financialContext.employees.total) {
-      const revenueNum = parseFloat(
-        financialContext.revenue.current.replace(/[^\d.]/g, ""),
-      );
-      const revenueScale = financialContext.revenue.current.includes("B")
-        ? 1000000000
-        : financialContext.revenue.current.includes("M")
-          ? 1000000
-          : 1;
-      const totalRevenue = revenueNum * revenueScale;
-      const rpe = Math.round(totalRevenue / financialContext.employees.total);
-      rpeStr = `$${rpe.toLocaleString()}`;
-    }
-
-    // Substitute financial context into prompt
-    const contextualPrompt = FOCUSED_HR_ANALYSIS_PROMPT.replace(
-      "{{REVENUE}}",
-      revenueStr,
-    )
-      .replace("{{PROFIT}}", profitStr)
-      .replace("{{EMPLOYEES}}", employeesStr)
-      .replace("{{ASSETS}}", assetsStr)
-      .replace("{{RPE}}", rpeStr);
-
-    const result = await model.generateContent([
-      contextualPrompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType,
-        },
-      },
-    ]);
-
-    const response = await result.response;
-    const text = response.text();
-
-    // Enhanced JSON extraction with better error handling
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error(
-        "No JSON found in HR analysis response:",
-        text.substring(0, 500),
-      );
-      throw new Error("No JSON found in HR analysis response");
-    }
-
-    let hrInsights;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      hrInsights = JSON.parse(jsonMatch[0]) as HRInsights;
-    } catch (parseError) {
-      console.error("JSON parsing failed:", parseError);
-      console.error("Raw JSON string:", jsonMatch[0].substring(0, 500));
-      throw new Error("Invalid JSON in HR analysis response");
-    }
+      console.log(`HR analysis attempt ${attempt}/${maxRetries}`);
 
-    // Enhanced validation with specific error reporting
-    const requiredFields = [
-      "summary",
-      "businessContext",
-      "workforceInsights",
-      "operationalChallenges",
-      "strategicPeopleInitiatives",
-    ];
-    for (const field of requiredFields) {
-      if (!hrInsights[field as keyof HRInsights]) {
-        console.warn(`Missing required field in HR insights: ${field}`);
+      // ENHANCED MODEL CONFIGURATION
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.1, // Lower for more consistent output
+          topP: 0.8, // More focused responses
+          topK: 40, // Limit token selection
+          maxOutputTokens: 8192, // Ensure complete responses
+          responseMimeType: "application/json", // Force JSON output
+        },
+      });
+
+      const fileBuffer = readFileSync(filePath);
+      const base64Data = fileBuffer.toString("base64");
+
+      const mimeType = filePath.toLowerCase().endsWith(".pdf")
+        ? "application/pdf"
+        : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+      // Build rich financial context string
+      const revenueStr = financialContext.revenue.current
+        ? `${financialContext.revenue.current} ${financialContext.revenue.currency}${financialContext.revenue.growth ? ` (${financialContext.revenue.growth} growth)` : ""}`
+        : "Not available";
+
+      const profitStr = financialContext.profitLoss.amount
+        ? `${financialContext.profitLoss.amount} ${financialContext.profitLoss.type}${financialContext.profitLoss.margin ? ` (${financialContext.profitLoss.margin} margin)` : ""}`
+        : "Not available";
+
+      const employeesStr = financialContext.employees.total
+        ? `${financialContext.employees.total.toLocaleString()}${financialContext.employees.growth ? ` (${financialContext.employees.growth} growth)` : ""}`
+        : "Not available";
+
+      const assetsStr = financialContext.assets.total
+        ? `${financialContext.assets.total} ${financialContext.assets.currency}`
+        : "Not available";
+
+      // Calculate revenue per employee if we have both metrics
+      let rpeStr = "Not available";
+      if (
+        financialContext.revenue.current &&
+        financialContext.employees.total
+      ) {
+        const revenueNum = parseFloat(
+          financialContext.revenue.current.replace(/[^\d.]/g, ""),
+        );
+        const revenueScale = financialContext.revenue.current.includes("B")
+          ? 1000000000
+          : financialContext.revenue.current.includes("M")
+            ? 1000000
+            : 1;
+        const totalRevenue = revenueNum * revenueScale;
+        const rpe = Math.round(totalRevenue / financialContext.employees.total);
+        rpeStr = `$${rpe.toLocaleString()}`;
       }
-    }
 
-    // Validate array fields
-    const arrayFields = [
-      "businessContext",
-      "workforceInsights",
-      "operationalChallenges",
-      "strategicPeopleInitiatives",
-    ];
-    for (const field of arrayFields) {
-      if (!Array.isArray(hrInsights[field as keyof HRInsights])) {
-        console.warn(`Invalid array field in HR insights: ${field}`);
-        (hrInsights as any)[field] = [];
+      // Substitute financial context into enhanced prompt
+      const contextualPrompt = ENHANCED_HR_ANALYSIS_PROMPT.replace(
+        "{{REVENUE}}",
+        revenueStr,
+      )
+        .replace("{{PROFIT}}", profitStr)
+        .replace("{{EMPLOYEES}}", employeesStr)
+        .replace("{{ASSETS}}", assetsStr)
+        .replace("{{RPE}}", rpeStr);
+
+      const result = await model.generateContent([
+        contextualPrompt,
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType,
+          },
+        },
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+
+      // Enhanced JSON extraction with better error handling
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error(
+          "No JSON found in HR analysis response:",
+          text.substring(0, 500),
+        );
+        throw new Error("No JSON found in HR analysis response");
       }
-    }
 
-    // Set defaults for missing extractionQuality
-    if (!hrInsights.extractionQuality) {
-      hrInsights.extractionQuality = {
-        overallConfidence: "medium",
-        dataCompleteness: "partial",
-        validationConcerns: [],
-        recommendedFollowUp: [],
-      };
-    }
+      let rawInsights;
+      try {
+        rawInsights = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error("JSON parsing failed:", parseError);
+        console.error("Raw JSON string:", jsonMatch[0].substring(0, 500));
+        throw new Error("Invalid JSON in HR analysis response");
+      }
 
-    return hrInsights;
-  } catch (error) {
-    console.error("HR analysis failed:", error);
-    throw new Error(
-      `Failed to generate HR insights: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+      // APPLY VALIDATION AND QUALITY FILTERING
+      const hrInsights = validateHRInsights(rawInsights);
+
+      // Check if we have enough quality insights
+      const totalInsights =
+        hrInsights.businessContext.length +
+        hrInsights.workforceInsights.length +
+        hrInsights.operationalChallenges.length +
+        hrInsights.strategicPeopleInitiatives.length;
+
+      if (totalInsights >= 5 || attempt === maxRetries) {
+        console.log(
+          `HR analysis completed with ${totalInsights} validated insights`,
+        );
+        return hrInsights;
+      }
+
+      console.warn(
+        `Attempt ${attempt} returned only ${totalInsights} validated insights, retrying...`,
+      );
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`HR analysis attempt ${attempt} failed:`, error);
+
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+
+      // Progressive backoff
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
   }
+
+  throw lastError!;
 }

@@ -1,0 +1,162 @@
+// Update the main export function in server/services/gemini.ts
+
+export async function analyzeDocumentWithGemini(
+  filePath: string,
+  useEnhancedPipeline: boolean = true,
+): Promise<EnhancedAnalysisResult> {
+  console.log(
+    `Starting document analysis with ${useEnhancedPipeline ? "enhanced pipeline" : "legacy approach"}`,
+  );
+
+  if (useEnhancedPipeline) {
+    try {
+      // Try enhanced multi-stage pipeline first
+      const pipelineResult = await analyzeDocumentWithFallback(filePath);
+
+      // Transform to legacy format for backward compatibility
+      const result: EnhancedAnalysisResult = {
+        summary: pipelineResult.hrInsights.summary,
+        businessContext: pipelineResult.hrInsights.businessContext,
+        workforceInsights: pipelineResult.hrInsights.workforceInsights,
+        operationalChallenges: pipelineResult.hrInsights.operationalChallenges,
+        strategicPeopleInitiatives:
+          pipelineResult.hrInsights.strategicPeopleInitiatives,
+
+        // CRITICAL: Ensure financial metrics are always included
+        financialMetrics: {
+          revenue: {
+            current: pipelineResult.financialMetrics.revenue.current,
+            previous: pipelineResult.financialMetrics.revenue.previous,
+            growth: pipelineResult.financialMetrics.revenue.growth,
+            currency: pipelineResult.financialMetrics.revenue.currency,
+            confidence: pipelineResult.financialMetrics.revenue.confidence,
+          },
+          profitLoss: {
+            type: pipelineResult.financialMetrics.profitLoss.type,
+            amount: pipelineResult.financialMetrics.profitLoss.amount,
+            margin: pipelineResult.financialMetrics.profitLoss.margin,
+            confidence: pipelineResult.financialMetrics.profitLoss.confidence,
+          },
+          employees: {
+            total: pipelineResult.financialMetrics.employees.total,
+            previousYear: pipelineResult.financialMetrics.employees.previousYear,
+            growth: pipelineResult.financialMetrics.employees.growth,
+            confidence: pipelineResult.financialMetrics.employees.confidence,
+          },
+          assets: {
+            total: pipelineResult.financialMetrics.assets.total,
+            currency: pipelineResult.financialMetrics.assets.currency,
+            confidence: pipelineResult.financialMetrics.assets.confidence,
+          },
+        },
+        processingStats: {
+          stage1Duration: pipelineResult.processingStats.stage1Duration,
+          stage2Duration: pipelineResult.processingStats.stage2Duration,
+          totalDuration: pipelineResult.processingStats.totalDuration,
+          qualityScore: calculateQualityScore(pipelineResult),
+        },
+        extractionQuality: pipelineResult.hrInsights.extractionQuality,
+      };
+
+      console.log("Enhanced pipeline completed successfully");
+      console.log("Financial metrics included:", {
+        revenue: result.financialMetrics?.revenue.current,
+        profit: result.financialMetrics?.profitLoss.amount,
+        employees: result.financialMetrics?.employees.total,
+        currency: result.financialMetrics?.revenue.currency
+      });
+      
+      return result;
+    } catch (pipelineError) {
+      console.warn(
+        "Enhanced pipeline failed, falling back to legacy approach:",
+        pipelineError,
+      );
+      // Fall through to legacy approach
+    }
+  }
+
+  // Legacy approach (your original working code) 
+  const legacyResult = await analyzeDocumentLegacy(filePath);
+  
+  // IMPORTANT: If legacy approach doesn't have financial metrics, try to extract them
+  if (!legacyResult.financialMetrics) {
+    console.log("Legacy result missing financial metrics, attempting basic extraction...");
+    try {
+      // Try a simple financial extraction for legacy results
+      const basicFinancials = await extractBasicFinancialMetrics(filePath);
+      legacyResult.financialMetrics = basicFinancials;
+      console.log("Basic financial metrics extracted for legacy result");
+    } catch (error) {
+      console.warn("Failed to extract basic financial metrics for legacy result:", error);
+    }
+  }
+  
+  return legacyResult;
+}
+
+// NEW: Add a simplified financial extraction for legacy fallback
+async function extractBasicFinancialMetrics(filePath: string): Promise<any> {
+  try {
+    // Import and use the full financial extractor
+    const { extractFinancialMetrics } = await import('./financial-extractor');
+    const fullMetrics = await extractFinancialMetrics(filePath);
+    
+    // Transform to the simplified format expected by frontend
+    return {
+      revenue: {
+        current: fullMetrics.revenue.current,
+        previous: fullMetrics.revenue.previous,
+        growth: fullMetrics.revenue.growth,
+        currency: fullMetrics.revenue.currency,
+        confidence: fullMetrics.revenue.confidence,
+      },
+      profitLoss: {
+        type: fullMetrics.profitLoss.type,
+        amount: fullMetrics.profitLoss.amount,
+        margin: fullMetrics.profitLoss.margin,
+        confidence: fullMetrics.profitLoss.confidence,
+      },
+      employees: {
+        total: fullMetrics.employees.total,
+        previousYear: fullMetrics.employees.previousYear,
+        growth: fullMetrics.employees.growth,
+        confidence: fullMetrics.employees.confidence,
+      },
+      assets: {
+        total: fullMetrics.assets.total,
+        currency: fullMetrics.assets.currency,
+        confidence: fullMetrics.assets.confidence,
+      },
+    };
+  } catch (error) {
+    console.warn("Basic financial extraction failed:", error);
+    // Return minimal structure
+    return {
+      revenue: {
+        current: null,
+        previous: null,
+        growth: null,
+        currency: "USD",
+        confidence: "low",
+      },
+      profitLoss: {
+        type: "profit",
+        amount: null,
+        margin: null,
+        confidence: "low",
+      },
+      employees: {
+        total: null,
+        previousYear: null,
+        growth: null,
+        confidence: "low",
+      },
+      assets: {
+        total: null,
+        currency: "USD",
+        confidence: "low",
+      },
+    };
+  }
+}

@@ -238,7 +238,7 @@ export async function analyzeDocumentWithGemini(
         strategicPeopleInitiatives:
           pipelineResult.hrInsights.strategicPeopleInitiatives,
 
-        // Enhanced data
+        // CRITICAL: Ensure financial metrics are always included
         financialMetrics: {
           revenue: {
             current: pipelineResult.financialMetrics.revenue.current,
@@ -255,10 +255,14 @@ export async function analyzeDocumentWithGemini(
           },
           employees: {
             total: pipelineResult.financialMetrics.employees.total,
-            previousYear:
-              pipelineResult.financialMetrics.employees.previousYear,
+            previousYear: pipelineResult.financialMetrics.employees.previousYear,
             growth: pipelineResult.financialMetrics.employees.growth,
             confidence: pipelineResult.financialMetrics.employees.confidence,
+          },
+          assets: {
+            total: pipelineResult.financialMetrics.assets.total,
+            currency: pipelineResult.financialMetrics.assets.currency,
+            confidence: pipelineResult.financialMetrics.assets.confidence,
           },
         },
         processingStats: {
@@ -271,6 +275,13 @@ export async function analyzeDocumentWithGemini(
       };
 
       console.log("Enhanced pipeline completed successfully");
+      console.log("Financial metrics included:", {
+        revenue: result.financialMetrics?.revenue.current,
+        profit: result.financialMetrics?.profitLoss.amount,
+        employees: result.financialMetrics?.employees.total,
+        currency: result.financialMetrics?.revenue.currency
+      });
+      
       return result;
     } catch (pipelineError) {
       console.warn(
@@ -281,8 +292,23 @@ export async function analyzeDocumentWithGemini(
     }
   }
 
-  // Legacy approach (your original working code)
-  return await analyzeDocumentLegacy(filePath);
+  // Legacy approach (your original working code) 
+  const legacyResult = await analyzeDocumentLegacy(filePath);
+  
+  // IMPORTANT: If legacy approach doesn't have financial metrics, try to extract them
+  if (!legacyResult.financialMetrics) {
+    console.log("Legacy result missing financial metrics, attempting basic extraction...");
+    try {
+      // Try a simple financial extraction for legacy results
+      const basicFinancials = await extractBasicFinancialMetrics(filePath);
+      legacyResult.financialMetrics = basicFinancials;
+      console.log("Basic financial metrics extracted for legacy result");
+    } catch (error) {
+      console.warn("Failed to extract basic financial metrics for legacy result:", error);
+    }
+  }
+  
+  return legacyResult;
 }
 
 // Legacy function (keep for backward compatibility and fallback)
@@ -347,6 +373,72 @@ async function analyzeDocumentLegacy(
     throw new Error(
       `Failed to analyze document: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
+  }
+}
+
+// NEW: Add a simplified financial extraction for legacy fallback
+async function extractBasicFinancialMetrics(filePath: string): Promise<any> {
+  try {
+    // Import and use the full financial extractor
+    const { extractFinancialMetrics } = await import('./financial-extractor');
+    const fullMetrics = await extractFinancialMetrics(filePath);
+    
+    // Transform to the simplified format expected by frontend
+    return {
+      revenue: {
+        current: fullMetrics.revenue.current,
+        previous: fullMetrics.revenue.previous,
+        growth: fullMetrics.revenue.growth,
+        currency: fullMetrics.revenue.currency,
+        confidence: fullMetrics.revenue.confidence,
+      },
+      profitLoss: {
+        type: fullMetrics.profitLoss.type,
+        amount: fullMetrics.profitLoss.amount,
+        margin: fullMetrics.profitLoss.margin,
+        confidence: fullMetrics.profitLoss.confidence,
+      },
+      employees: {
+        total: fullMetrics.employees.total,
+        previousYear: fullMetrics.employees.previousYear,
+        growth: fullMetrics.employees.growth,
+        confidence: fullMetrics.employees.confidence,
+      },
+      assets: {
+        total: fullMetrics.assets.total,
+        currency: fullMetrics.assets.currency,
+        confidence: fullMetrics.assets.confidence,
+      },
+    };
+  } catch (error) {
+    console.warn("Basic financial extraction failed:", error);
+    // Return minimal structure
+    return {
+      revenue: {
+        current: null,
+        previous: null,
+        growth: null,
+        currency: "USD",
+        confidence: "low",
+      },
+      profitLoss: {
+        type: "profit",
+        amount: null,
+        margin: null,
+        confidence: "low",
+      },
+      employees: {
+        total: null,
+        previousYear: null,
+        growth: null,
+        confidence: "low",
+      },
+      assets: {
+        total: null,
+        currency: "USD",
+        confidence: "low",
+      },
+    };
   }
 }
 
