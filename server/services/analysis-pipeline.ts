@@ -7,6 +7,7 @@ import {
   extractBusinessOverview,
   BusinessOverview,
 } from "./business-overview-extractor";
+import { FEATURES } from "./feature-flags";
 
 export interface PipelineResult {
   businessOverview: BusinessOverview;
@@ -20,6 +21,8 @@ export interface PipelineResult {
     stage0Success: boolean;
     stage1Success: boolean;
     stage2Success: boolean;
+    executionMode?: 'sequential' | 'parallel';
+    partialSuccess?: boolean;
   };
 }
 
@@ -95,11 +98,7 @@ export async function analyzeDocumentPipeline(
     );
     const stage2Start = Date.now();
 
-    const hrInsights = await generateHRInsights(
-      filePath,
-      financialMetrics,
-      businessOverview,
-    );
+    const hrInsights = await generateHRInsights(filePath);
 
     stage2Duration = Date.now() - stage2Start;
     stage2Success = true;
@@ -239,11 +238,7 @@ export async function analyzeDocumentWithFallback(
       const partialFinancials = await extractFinancialMetricsRelaxed(filePath);
 
       // Try HR insights with available context
-      const hrInsights = await generateHRInsights(
-        filePath,
-        partialFinancials,
-        businessOverview,
-      );
+      const hrInsights = await generateHRInsights(filePath);
 
       return {
         businessOverview,
