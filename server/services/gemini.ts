@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { readFileSync } from "fs";
+import { analyzeDocumentPipeline } from "./analysis-pipeline";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -245,6 +246,20 @@ function validateResponse(parsed: any): HRAnalysisResult {
 }
 
 export async function analyzeDocumentWithGemini(
+  filePath: string,
+): Promise<HRAnalysisResult> {
+  try {
+    // Try multi-stage pipeline first
+    return await analyzeDocumentPipeline(filePath);
+  } catch (pipelineError) {
+    console.warn('Multi-stage pipeline failed, falling back to legacy approach:', pipelineError);
+    
+    // Fallback to original monolithic approach
+    return await analyzeDocumentLegacy(filePath);
+  }
+}
+
+async function analyzeDocumentLegacy(
   filePath: string,
 ): Promise<HRAnalysisResult> {
   try {
