@@ -29,6 +29,11 @@ export const getUploadById = async (id: number): Promise<UploadFile> => {
   return await res.json();
 };
 
+export const reanalyzeUpload = async (id: number): Promise<UploadFile> => {
+  const res = await apiRequest('POST', `/api/uploads/${id}/reanalyze`);
+  return await res.json();
+};
+
 export const deleteUpload = async (id: number): Promise<void> => {
   await apiRequest('DELETE', `/api/uploads/${id}`);
 };

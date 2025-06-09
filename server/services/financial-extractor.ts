@@ -8,17 +8,17 @@ export interface FinancialMetrics {
     current: string | null;
     previous: string | null;
     currency: string;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: "high" | "medium" | "low";
   };
   profit: {
     amount: string | null;
-    type: 'profit' | 'loss' | 'breakeven';
+    type: "profit" | "loss" | "breakeven";
     margin: string | null;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: "high" | "medium" | "low";
   };
   employees: {
     total: number | null;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: "high" | "medium" | "low";
   };
   validation: {
     reasonableMargin: boolean;
@@ -27,47 +27,64 @@ export interface FinancialMetrics {
   };
 }
 
-const FINANCIAL_EXTRACTION_PROMPT = `Extract ONLY financial metrics from this annual report. Be precise and concise.
+const FINANCIAL_EXTRACTION_PROMPT = `You are analyzing an annual report to help extract key information for a financial metrics dashboard. Extract ONLY financial metrics from this annual report. Be precise and concise.
 
-CRITICAL: Respond with ONLY valid JSON. No explanations, no markdown, no text before or after.
+**CRITICAL FINANCIAL EXTRACTION REQUIREMENTS:**
 
-Required JSON format:
+You must extract and validate ALL financial metrics with extreme precision.
+
+**REVENUE EXTRACTION RULES:**
+- Look for: "revenue", "total revenue", "net revenue", "sales", "net sales", "total sales"
+- Common formats: "Revenue: $4.2B", "revenue grew to $4.2 billion", "achieved revenue of $4.2B", "revenue increased 23% to $4.2B"
+- Extract BOTH current year and previous year when available
+- If only percentage growth given, extract the percentage and base amount separately
+
+**PROFIT/LOSS EXTRACTION RULES:**
+- PROFIT indicators: "net income", "profit", "operating income", "earnings", "net earnings"
+- LOSS indicators: "net loss", "operating loss", "loss", "deficit", "(loss)"
+- CRITICAL: If you see "loss", "deficit", or negative indicators, mark as LOSS not profit
+- Extract exact amounts and note if it's profit or loss
+
+**BUSINESS LOGIC VALIDATION:**
+- If profit > 50% of revenue, mark confidence as "low" and flag for review
+- If profit = revenue, mark as "impossible - likely data extraction error"
+- If loss is present, profit should be null or negative
+- Revenue should always be positive and larger than profit
+
+**STRUCTURED FINANCIAL OUTPUT:**
+Always include this exact JSON structure at the beginning of your response:
+
 {
-  "revenue": {
-    "current": "4.2B" or null,
-    "previous": "3.4B" or null,
-    "currency": "USD",
-    "confidence": "high"
-  },
-  "profit": {
-    "amount": "500M" or null,
-    "type": "profit" or "loss",
-    "margin": "12%" or null,
-    "confidence": "high"
-  },
-  "employees": {
-    "total": 10118 or null,
-    "confidence": "high"
-  },
-  "validation": {
-    "reasonableMargin": true,
-    "crossCheckPassed": true,
-    "extractionMethod": "direct_statement"
-  }
-}
-
-EXTRACTION RULES:
-1. Revenue: Look for "revenue", "total revenue", "net revenue", "sales"
-2. Profit/Loss: Look for "net income", "profit", "loss", "operating income"
-3. If you see "loss" or negative values, set type to "loss"
-4. Employees: Look for "total employees", "headcount", "workforce"
-5. Use short format: "4.2B" not "4200000000"
-6. Currency: Extract from context (USD, EUR, GBP, etc.)
-7. Confidence: "high" if explicit numbers, "medium" if calculated, "low" if unclear
+  "financialMetrics": {
+    "revenue": {
+      "current": "4.2B" | null,
+      "previous": "3.4B" | null,
+      "growth": "23%" | null,
+      "currency": "USD" | null,
+      "confidence": "high" | "medium" | "low",
+      "sourceText": "exact quote from document",
+      "extractionMethod": "direct_statement" | "growth_narrative" | "calculated"
+    },
+    "profitLoss": {
+      "type": "profit" | "loss" | "breakeven",
+      "amount": "500M" | null,
+      "margin": "12%" | null,
+      "confidence": "high" | "medium" | "low",
+      "sourceText": "exact quote from document",
+      "validationFlags": ["profit_exceeds_50_percent"] | []
+    },
+    "validation": {
+      "revenueReasonable": true | false,
+      "profitMarginReasonable": true | false,
+      "crossCheckPassed": true | false,
+      "flaggedForReview": true | false,
+      "notes": "Any validation concerns or extraction challenges"
 
 Start response with { and end with }`;
 
-export async function extractFinancialMetrics(filePath: string): Promise<FinancialMetrics> {
+export async function extractFinancialMetrics(
+  filePath: string,
+): Promise<FinancialMetrics> {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -100,13 +117,19 @@ export async function extractFinancialMetrics(filePath: string): Promise<Financi
     const financialMetrics = JSON.parse(jsonMatch[0]) as FinancialMetrics;
 
     // Basic validation
-    if (!financialMetrics.revenue || !financialMetrics.profit || !financialMetrics.employees) {
+    if (
+      !financialMetrics.revenue ||
+      !financialMetrics.profit ||
+      !financialMetrics.employees
+    ) {
       throw new Error("Incomplete financial metrics structure");
     }
 
     return financialMetrics;
   } catch (error) {
     console.error("Financial extraction failed:", error);
-    throw new Error(`Failed to extract financial metrics: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Failed to extract financial metrics: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }

@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import { storage } from "./storage";
 import { insertUploadSchema } from "@shared/schema";
+import { analyzeDocumentWithGemini } from "./services/gemini";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -114,6 +115,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(upload);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch upload" });
+    }
+  });
+
+  // Re-analyze existing upload
+  app.post("/api/uploads/:id/reanalyze", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const upload = await storage.getUploadById(id);
+      
+      if (!upload) {
+        return res.status(404).json({ message: "Upload not found" });
+      }
+
+      if (!upload.filePath) {
+        return res.status(400).json({ message: "File path not available for reanalysis" });
+      }
+
+      // Update status to processing
+      await storage.updateUploadStatus(id, 'processing');
+      
+      // Start reanalysis in background
+      setTimeout(async () => {
+        try {
+          console.log(`Reprocessing upload ${id}...`);
+          const analysisResult = await analyzeDocumentWithGemini(upload.filePath!);
+          const analysisData = JSON.stringify(analysisResult);
+          
+          await storage.updateUploadStatus(id, 'completed', analysisData);
+          console.log(`Reanalysis completed for upload ${id}`);
+        } catch (error) {
+          console.error(`Error reprocessing upload ${id}:`, error);
+          await storage.updateUploadStatus(id, 'failed');
+        }
+      }, 1000);
+
+      // Return updated upload immediately
+      const updatedUpload = await storage.getUploadById(id);
+      res.json(updatedUpload);
+    } catch (error) {
+      console.error("Error triggering reanalysis:", error);
+      res.status(500).json({ message: "Failed to trigger reanalysis" });
     }
   });
 

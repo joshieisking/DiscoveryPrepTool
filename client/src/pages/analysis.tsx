@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, BarChart3 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, FileText, TrendingUp, Users, AlertTriangle, Target, Building, BarChart3, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/header";
-import { getUploadById } from "@/services/upload";
+import { getUploadById, reanalyzeUpload } from "@/services/upload";
 import { formatFileSize, formatUploadTime } from "@/utils/file";
 import { Link } from "wouter";
 import VisualizationControls, { type ViewMode } from "@/components/visualization/visualization-controls";
 import type { AnalysisData, HRInsight } from "@/types/upload";
+import { useToast } from "@/hooks/use-toast";
 
 interface InsightSectionProps {
   title: string;
