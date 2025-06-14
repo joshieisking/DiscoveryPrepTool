@@ -8,10 +8,11 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="geometric-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
           {/* Hero Section */}
-          <section className="text-center mb-16">
-            <div className="max-w-4xl mx-auto">
+          <section className="text-center mb-16 relative">
+            <div className="hero-shapes"></div>
+            <div className="max-w-4xl mx-auto relative z-10">
               <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
                 Your <span className="text-primary">ACES</span> for every 
                 <span className="text-accent"> Discovery Call</span>

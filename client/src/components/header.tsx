@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { User } from "lucide-react";
-import discoAcesLogo from "@/assets/disco-aces-logo.svg";
+import discoAcesLogo from "@assets/Disco ACES_1749866063901.png";
 
 export default function Header() {
   const [location] = useLocation();
