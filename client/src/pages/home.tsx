@@ -2,7 +2,7 @@ import { Target, Zap, Lightbulb, TrendingUp } from "lucide-react";
 import Header from "@/components/header";
 import FileUpload from "@/components/file-upload";
 import UploadHistory from "@/components/upload-history";
-import discoAcesLogo from "@assets/Disco ACES_1749866063901.png";
+import discoAcesLogo from "@assets/discoaces logo_1749867534061.png";
 
 export default function Home() {
   return (
@@ -64,7 +64,7 @@ export default function Home() {
               <img 
                 src={discoAcesLogo} 
                 alt="Disco ACES" 
-                className="h-10 w-auto object-contain"
+                className="h-8 w-auto object-contain"
               />
               <span className="text-foreground font-medium">
                 Sales Intelligence Platform

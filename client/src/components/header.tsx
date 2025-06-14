@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { User } from "lucide-react";
-import discoAcesLogo from "@assets/Disco ACES_1749866063901.png";
+import discoAcesLogo from "@assets/discoaces logo_1749867534061.png";
 
 export default function Header() {
   const [location] = useLocation();
@@ -19,7 +19,7 @@ export default function Header() {
             <img 
               src={discoAcesLogo} 
               alt="Disco ACES" 
-              className="h-14 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
             <div>
               <h1 className="text-xl font-semibold text-foreground">Sales Intelligence Platform</h1>
