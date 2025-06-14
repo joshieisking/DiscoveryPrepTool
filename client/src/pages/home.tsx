@@ -5,73 +5,78 @@ import UploadHistory from "@/components/upload-history";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <section className="text-center mb-12">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold text-slate-800 mb-4">
-              Your ACES for every Discovery Call
-            </h2>
-            <p className="text-xl text-slate-600 mb-6">
-              Turn intimidating annual reports into your secret weapon. Our AI
-              finds the business gold buried in financial jargon, delivering
-              your ACES playbook to Advocate with authority, Collaborate with
-              context, Empathize with evidence, and Strategize with substance.
-            </p>
-            <div className="flex justify-center space-x-8 text-sm text-slate-500">
-              <div className="flex items-center">
-                <Target className="w-5 h-5 mr-2 text-primary" />
-                <span>
-                  <strong>ACES Intelligence</strong>
-                </span>
-              </div>
-              <div className="flex items-center">
-                <Zap className="w-5 h-5 mr-2 text-primary" />
-                <span>
-                  <strong>5-Minute Advantage</strong>
-                </span>
-              </div>
-              <div className="flex items-center">
-                <Lightbulb className="w-5 h-5 mr-2 text-primary" />
-                <span>
-                  <strong>Trusted Advisor Mode</strong>
-                </span>
+      <main className="geometric-bg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Hero Section */}
+          <section className="text-center mb-16">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
+                Your <span className="text-primary">ACES</span> for every 
+                <span className="text-accent"> Discovery Call</span>
+              </h2>
+              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+                Transform annual reports into strategic sales intelligence. Our AI 
+                extracts actionable insights from complex financial documents, 
+                delivering your competitive advantage in minutes.
+              </p>
+              <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                <div className="flex flex-col items-center p-4 card-enhanced">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                    <Target className="w-6 h-6 text-primary" />
+                  </div>
+                  <span className="font-semibold text-foreground">ACES Intelligence</span>
+                  <span className="text-sm text-muted-foreground mt-1">Strategic insights extraction</span>
+                </div>
+                <div className="flex flex-col items-center p-4 card-enhanced">
+                  <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
+                    <Zap className="w-6 h-6 text-secondary" />
+                  </div>
+                  <span className="font-semibold text-foreground">5-Minute Analysis</span>
+                  <span className="text-sm text-muted-foreground mt-1">Rapid document processing</span>
+                </div>
+                <div className="flex flex-col items-center p-4 card-enhanced">
+                  <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
+                    <Lightbulb className="w-6 h-6 text-accent" />
+                  </div>
+                  <span className="font-semibold text-foreground">Trusted Insights</span>
+                  <span className="text-sm text-muted-foreground mt-1">Data-driven recommendations</span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* File Upload Section */}
-        <FileUpload />
+          {/* File Upload Section */}
+          <FileUpload />
 
-        {/* Upload History Section */}
-        <UploadHistory />
+          {/* Upload History Section */}
+          <UploadHistory />
+        </div>
       </main>
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-16">
+      <footer className="bg-card border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="text-slate-600 font-medium">
-                Discovery Prep Assistant
+              <span className="text-foreground font-medium">
+                Sales Intelligence Platform
               </span>
             </div>
-            <div className="flex items-center space-x-6 text-sm text-slate-500">
-              <a href="#" className="hover:text-slate-700 transition-colors">
+            <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-primary transition-colors">
                 Privacy Policy
               </a>
-              <a href="#" className="hover:text-slate-700 transition-colors">
+              <a href="#" className="hover:text-primary transition-colors">
                 Terms of Service
               </a>
-              <a href="#" className="hover:text-slate-700 transition-colors">
+              <a href="#" className="hover:text-primary transition-colors">
                 Support
               </a>
-              <span>© 2025 ACES</span>
+              <span>© 2025 Disco ACES</span>
             </div>
           </div>
         </div>
