@@ -60,11 +60,11 @@ export default function Home() {
       <footer className="bg-card border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <div className="flex items-center space-x-3 mb-4 md:mb-0 logo-clean">
               <img 
                 src={discoAcesLogo} 
                 alt="Disco ACES" 
-                className="h-8 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
               <span className="text-foreground font-medium">
                 Sales Intelligence Platform
