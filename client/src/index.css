@@ -203,16 +203,34 @@
   }
   
   /* Logo styling improvements */
-  .logo-clean {
-    background: transparent;
-    mix-blend-mode: multiply;
-    filter: contrast(1.1) brightness(1.05);
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
   }
   
-  .logo-clean img {
+  .logo-container img {
     background: transparent;
     object-fit: contain;
-    max-width: 100%;
-    height: auto;
+    flex-shrink: 0;
+    max-width: none;
+  }
+  
+  /* Fix layout positioning issues */
+  .main-content {
+    position: relative;
+    z-index: 10;
+  }
+  
+  .header-container {
+    position: relative;
+    z-index: 50;
+  }
+  
+  /* Prevent logo from bleeding into other content */
+  .content-boundary {
+    position: relative;
+    isolation: isolate;
   }
 }

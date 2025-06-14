@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { User } from "lucide-react";
-import discoAcesLogo from "@assets/discoaces logo_1749867534061.png";
+import { Logo } from "@/components/ui/logo";
 
 export default function Header() {
   const [location] = useLocation();
@@ -15,12 +15,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo Section */}
-          <Link href="/" className="flex items-center space-x-4 logo-clean">
-            <img 
-              src={discoAcesLogo} 
-              alt="Disco ACES" 
-              className="h-10 w-auto object-contain"
-            />
+          <Link href="/" className="flex items-center space-x-4">
+            <Logo size="large" variant="header" showText={false} />
             <div>
               <h1 className="text-xl font-semibold text-foreground">Sales Intelligence Platform</h1>
               <p className="text-xs text-muted-foreground">Transform Annual Reports into Strategic Insights</p>

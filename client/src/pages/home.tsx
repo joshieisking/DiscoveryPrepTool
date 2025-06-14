@@ -2,7 +2,7 @@ import { Target, Zap, Lightbulb, TrendingUp } from "lucide-react";
 import Header from "@/components/header";
 import FileUpload from "@/components/file-upload";
 import UploadHistory from "@/components/upload-history";
-import discoAcesLogo from "@assets/discoaces logo_1749867534061.png";
+import { Logo } from "@/components/ui/logo";
 
 export default function Home() {
   return (
@@ -60,16 +60,7 @@ export default function Home() {
       <footer className="bg-card border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0 logo-clean">
-              <img 
-                src={discoAcesLogo} 
-                alt="Disco ACES" 
-                className="h-8 w-auto object-contain"
-              />
-              <span className="text-foreground font-medium">
-                Sales Intelligence Platform
-              </span>
-            </div>
+            <Logo size="medium" variant="footer" showText={true} />
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-primary transition-colors">
                 Privacy Policy
