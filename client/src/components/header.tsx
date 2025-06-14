@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Search, User } from "lucide-react";
+import { User } from "lucide-react";
+import discoAcesLogo from "@/assets/disco-aces-logo.svg";
 
 export default function Header() {
   const [location] = useLocation();
@@ -10,17 +11,19 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo Section */}
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Search className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img 
+              src={discoAcesLogo} 
+              alt="Disco ACES" 
+              className="h-10 w-auto"
+            />
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">PREP</h1>
-              <p className="text-xs text-slate-500">Perfect Readiness for Every Presentation</p>
+              <h1 className="text-xl font-semibold text-foreground">Sales Intelligence Platform</h1>
+              <p className="text-xs text-muted-foreground">Transform Annual Reports into Strategic Insights</p>
             </div>
           </Link>
 
