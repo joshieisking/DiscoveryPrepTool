@@ -6,9 +6,9 @@ import { Logo } from "@/components/ui/logo";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background geometric-bg flex flex-col">
       <Header />
-      <main className="geometric-bg main-content">
+      <main className="main-content flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-boundary">
           {/* Hero Section */}
           <section className="text-center mb-16 relative">
@@ -57,7 +57,7 @@ export default function Home() {
         </div>
       </main>
       {/* Footer */}
-      <footer className="bg-card border-t border-border mt-16">
+      <footer className="bg-card border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <Logo size="medium" variant="footer" showText={true} />

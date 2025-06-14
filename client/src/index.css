@@ -85,6 +85,11 @@
     min-height: 100vh;
   }
   
+  /* Ensure background covers full container */
+  .geometric-bg.flex {
+    min-height: 100vh;
+  }
+  
   .geometric-bg::before {
     content: '';
     position: absolute;
