@@ -201,4 +201,18 @@
     background: var(--dayforce-teal);
     border-radius: 2px;
   }
+  
+  /* Logo styling improvements */
+  .logo-clean {
+    background: transparent;
+    mix-blend-mode: multiply;
+    filter: contrast(1.1) brightness(1.05);
+  }
+  
+  .logo-clean img {
+    background: transparent;
+    object-fit: contain;
+    max-width: 100%;
+    height: auto;
+  }
 }

@@ -15,11 +15,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo Section */}
-          <Link href="/" className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-4 logo-clean">
             <img 
               src={discoAcesLogo} 
               alt="Disco ACES" 
-              className="h-10 w-auto"
+              className="h-14 w-auto object-contain"
             />
             <div>
               <h1 className="text-xl font-semibold text-foreground">Sales Intelligence Platform</h1>

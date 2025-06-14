@@ -2,6 +2,7 @@ import { Target, Zap, Lightbulb, TrendingUp } from "lucide-react";
 import Header from "@/components/header";
 import FileUpload from "@/components/file-upload";
 import UploadHistory from "@/components/upload-history";
+import discoAcesLogo from "@assets/Disco ACES_1749866063901.png";
 
 export default function Home() {
   return (
@@ -59,10 +60,12 @@ export default function Home() {
       <footer className="bg-card border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-primary-foreground" />
-              </div>
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <img 
+                src={discoAcesLogo} 
+                alt="Disco ACES" 
+                className="h-8 w-auto object-contain"
+              />
               <span className="text-foreground font-medium">
                 Sales Intelligence Platform
               </span>
