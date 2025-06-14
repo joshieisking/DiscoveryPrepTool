@@ -8,8 +8,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="geometric-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="geometric-bg main-content">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-boundary">
           {/* Hero Section */}
           <section className="text-center mb-16 relative">
             <div className="hero-shapes"></div>

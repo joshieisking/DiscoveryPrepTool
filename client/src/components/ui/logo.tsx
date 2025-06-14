@@ -23,19 +23,18 @@ export function Logo({
   const logoSize = sizeClasses[size];
   
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("logo-container", className)}>
       <img 
         src={discoAcesLogo} 
         alt="Disco ACES" 
         className={cn(
           "w-auto object-contain",
-          logoSize,
-          "max-w-none" // Prevent responsive constraints from breaking aspect ratio
+          logoSize
         )}
       />
       {showText && variant !== 'standalone' && (
         <span className="text-foreground font-medium">
-          {variant === 'footer' ? 'Sales Intelligence Platform' : 'Sales Intelligence Platform'}
+          Sales Intelligence Platform
         </span>
       )}
     </div>
